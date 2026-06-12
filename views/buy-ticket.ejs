@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Корзина - Покупка билетов</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" href="/img/logo-icon.jpg">
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+        <main>
+            <div class="buy-ticket-blok">
+                <p class="b-t-zag">Корзина</p>
+
+                <div id="cartContainer" class="b-t-blocks"></div>
+
+                <div id="totalBlock" class="cart-total" style="display: none;">
+                    <div class="cart-total-inner">
+                        <p class="cart-total-label">Итого к оплате:</p>
+                        <p class="cart-total-price"><span id="totalAmount">0</span> ₽</p>
+                    </div>
+                </div>
+
+                <div class="cart-actions">
+                    <div class="add-event-wrapper">
+                        <select id="eventSelect" class="event-select">
+                            <option value="">-- Выберите мероприятие --</option>
+                        </select>
+                        <button id="addEventBtn" class="add-event-btn">Добавить</button>
+                    </div>
+                    <button id="checkoutBtn" class="checkout-btn">Перейти к оплате</button>
+                </div>
+            </div>
+        </main>
+
+        <%- include('partials/footer') %>
+
+            <script>
+                let allEvents = [];
+                let cart = [];
+
+                // Загрузка мероприятий из БД
+                async function loadAllEvents() {
+                    try {
+                        const res = await fetch('/api/events/all');
+                        const data = await res.json();
+                        if (data.success) {
+                            allEvents = data.events;
+                            updateEventSelect();
+                        }
+                    } catch (error) {
+                        console.error('Ошибка загрузки мероприятий:', error);
+                    }
+                }
+
+                function getEventByCode(eventCode) {
+                    return allEvents.find(e => e.event_code === parseInt(eventCode));
+                }
+
+                function updateEventSelect() {
+                    const select = document.getElementById('eventSelect');
+                    if (!select) return;
+
+                    const cartEventCodes = cart.map(item => parseInt(item.event_code));
+                    const availableEvents = allEvents.filter(e => !cartEventCodes.includes(e.event_code) && e.available_seats > 0);
+
+                    select.innerHTML = '<option value="">-- Выберите мероприятие --</option>';
+                    availableEvents.forEach(event => {
+                        const option = document.createElement('option');
+                        option.value = event.event_code;
+                        option.textContent = `${event.title_full} | ${new Date(event.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} ${event.time} | ${event.price}₽ | Осталось ${event.available_seats} мест`;
+                        select.appendChild(option);
+                    });
+                }
+
+                function saveCart() {
+                    sessionStorage.setItem('cart', JSON.stringify(cart));
+                    if (window.updateCartFlyCount) window.updateCartFlyCount();
+                }
+
+                async function loadCartFromStorage() {
+                    const saved = sessionStorage.getItem('cart');
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const eventCode = urlParams.get('event');
+
+                    await loadAllEvents();
+
+                    if (saved) {
+                        cart = JSON.parse(saved);
+                    } else {
+                        cart = [];
+                    }
+
+                    // Если есть event в URL - добавляем в корзину
+                    if (eventCode) {
+                        const event = getEventByCode(parseInt(eventCode));
+                        if (event) {
+                            const existingItem = cart.find(item => parseInt(item.event_code) === parseInt(eventCode));
+                            if (existingItem) {
+                                existingItem.quantity += 1;
+                                showToast(`Количество билетов на "${event.title_short}" увеличено до ${existingItem.quantity}`, 'success');
+                            } else {
+                                cart.push({ event_code: parseInt(eventCode), quantity: 1 });
+                                showToast(`"${event.title_short}" добавлен в корзину`, 'success');
+                            }
+                            saveCart();
+                        }
+                        // Удаляем параметр event из URL без перезагрузки
+                        window.history.replaceState({}, document.title, '/buy-ticket');
+                    }
+
+                    renderCart();
+                    if (window.updateCartFlyCount) window.updateCartFlyCount();
+                }
+
+                function calculateTotal() {
+                    let total = 0;
+                    for (const item of cart) {
+                        const event = getEventByCode(item.event_code);
+                        if (event) {
+                            total += event.price * item.quantity;
+                        }
+                    }
+                    return total;
+                }
+
+                function updateTotalDisplay() {
+                    const total = calculateTotal();
+                    const totalBlock = document.getElementById('totalBlock');
+                    const checkoutBtn = document.getElementById('checkoutBtn');
+                    const totalAmount = document.getElementById('totalAmount');
+
+                    if (cart.length > 0) {
+                        totalBlock.style.display = 'flex';
+                        checkoutBtn.style.display = 'block';
+                        totalAmount.textContent = total;
+                    } else {
+                        totalBlock.style.display = 'none';
+                        checkoutBtn.style.display = 'none';
+                    }
+                }
+
+                function renderCart() {
+                    const container = document.getElementById('cartContainer');
+                    if (!container) return;
+
+                    if (cart.length === 0) {
+                        container.innerHTML = `
+                        <div class="empty-cart">
+                            <p>Корзина пуста</p>
+                        </div>
+                    `;
+                        updateTotalDisplay();
+                        updateEventSelect();
+                        return;
+                    }
+
+                    container.innerHTML = '';
+
+                    for (let i = 0; i < cart.length; i++) {
+                        const item = cart[i];
+                        const event = getEventByCode(item.event_code);
+                        if (!event) continue;
+
+                        const totalForItem = event.price * item.quantity;
+                        const formattedDate = new Date(event.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+                        const imageUrl = event.image || '/img/meropr-card-img.png';
+
+                        const block = document.createElement('div');
+                        block.className = 'b-t-block';
+                        block.dataset.index = i;
+                        block.innerHTML = `
+                        <div class="meropr-card" style="background-image: url('${imageUrl}'); background-size: cover; background-position: center;">
+                            <div class="card-effect">
+                                <div class="meropr-card-info">
+                                    <div class="meropr-opis">
+                                        <p class="meropr-card-name">${escapeHtml(event.title_short)}</p>
+                                        <p class="meropr-card-razd">${escapeHtml(event.event_type)}</p>
+                                    </div>
+                                    <div class="memchik">
+                                        <p class="date-time">${formattedDate} ${event.time}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="b-t-r">
+                            <div class="b-t-r-t">
+                                <div class="b-t-name">
+                                    <div class="b-t-n">
+                                        <p class="b-t-event-name">${escapeHtml(event.title_full)}</p>
+                                        <p class="b-t-event-razd">${escapeHtml(event.event_type)}</p>
+                                    </div>
+                                    <img src="/img/cross.svg" alt="Удалить" class="remove-from-cart" data-index="${i}">
+                                </div>
+                                <div class="mvm-r-t-b-dr">
+                                    <p class="mvm-r-t-t-opis"><span>Дата:</span> ${formattedDate}</p>
+                                    <p class="mvm-r-t-t-opis"><span>Время:</span> ${event.time}</p>
+                                    <p class="mvm-r-t-t-opis"><span>Осталось мест:</span> ${event.available_seats}</p>
+                                </div>
+                            </div>
+                            <div class="b-t-r-b">
+                                <div class="tick-cost">
+                                    <div class="t-c">
+                                        <p class="t-c-name">Кол-во билетов</p>
+                                        <div class="count-block">
+                                            <button class="count-tick-btn minus-btn" data-index="${i}">-</button>
+                                            <p class="t-c-opiss quantity-val">${item.quantity}</p>
+                                            <button class="count-tick-btn plus-btn" data-index="${i}">+</button>
+                                        </div>
+                                    </div>
+                                    <div class="t-c">
+                                        <p class="t-c-name">К оплате</p>
+                                        <p class="t-c-opiss total-price">${totalForItem}₽</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                        container.appendChild(block);
+                    }
+
+                    attachEventHandlers();
+                    updateTotalDisplay();
+                    updateEventSelect();
+                    if (window.updateCartFlyCount) window.updateCartFlyCount();
+
+                }
+
+                function escapeHtml(str) {
+                    if (!str) return '';
+                    return str.replace(/[&<>]/g, function (m) {
+                        if (m === '&') return '&amp;';
+                        if (m === '<') return '&lt;';
+                        if (m === '>') return '&gt;';
+                        return m;
+                    });
+                }
+
+                function attachEventHandlers() {
+                    document.querySelectorAll('.remove-from-cart').forEach(btn => {
+                        btn.onclick = (e) => {
+                            e.stopPropagation();
+                            const index = parseInt(btn.dataset.index);
+                            showRemoveConfirmModal(index);
+                        };
+                    });
+
+                    document.querySelectorAll('.minus-btn').forEach(btn => {
+                        btn.onclick = () => {
+                            const index = parseInt(btn.dataset.index);
+                            updateQuantity(index, -1);
+                        };
+                    });
+
+                    document.querySelectorAll('.plus-btn').forEach(btn => {
+                        btn.onclick = () => {
+                            const index = parseInt(btn.dataset.index);
+                            updateQuantity(index, 1);
+                        };
+                    });
+                }
+
+                function updateQuantity(index, delta) {
+                    const item = cart[index];
+                    const event = getEventByCode(item.event_code);
+                    if (!event) return;
+
+                    let newQuantity = item.quantity + delta;
+                    if (newQuantity < 1) newQuantity = 1;
+                    if (newQuantity > event.available_seats) {
+                        showToast(`Доступно только ${event.available_seats} билетов`, 'error');
+                        return;
+                    }
+
+                    cart[index].quantity = newQuantity;
+                    saveCart();
+                    renderCart();
+                }
+
+                let pendingRemoveIndex = null;
+
+                function showRemoveConfirmModal(index) {
+                    pendingRemoveIndex = index;
+                    const modalHtml = `
+                    <div id="removeConfirmModal" class="modal show" style="display: flex;">
+                        <div class="modal-content confirm-modal">
+                            <span class="close" onclick="closeRemoveConfirmModal()">&times;</span>
+                            <h3>Подтверждение удаления</h3>
+                            <p>Вы уверены, что хотите удалить это мероприятие из корзины?</p>
+                            <div class="confirm-buttons">
+                                <button onclick="confirmRemove()" class="confirm-yes">Удалить</button>
+                                <button onclick="closeRemoveConfirmModal()" class="confirm-no">Отмена</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                    document.body.insertAdjacentHTML('beforeend', modalHtml);
+                    document.body.classList.add('modal-open');
+                }
+
+                window.closeRemoveConfirmModal = function () {
+                    const modal = document.getElementById('removeConfirmModal');
+                    if (modal) modal.remove();
+                    document.body.classList.remove('modal-open');
+                    pendingRemoveIndex = null;
+                };
+
+                window.confirmRemove = function () {
+                    if (pendingRemoveIndex !== null) {
+                        cart.splice(pendingRemoveIndex, 1);
+                        saveCart();
+                        renderCart();
+                    }
+                    closeRemoveConfirmModal();
+                };
+
+                function addSelectedEvent() {
+                    const select = document.getElementById('eventSelect');
+                    const eventCode = select.value;
+
+                    if (!eventCode) {
+                        showToast('Выберите мероприятие', 'error');
+                        return;
+                    }
+
+                    const code = parseInt(eventCode);
+                    const event = getEventByCode(code);
+
+                    if (!event) {
+                        showToast('Ошибка загрузки мероприятия', 'error');
+                        return;
+                    }
+
+                    if (event.available_seats < 1) {
+                        showToast('Нет свободных мест', 'error');
+                        return;
+                    }
+
+                    const alreadyInCart = cart.some(item => parseInt(item.event_code) === code);
+                    if (alreadyInCart) {
+                        showToast('Это мероприятие уже в корзине', 'error');
+                        return;
+                    }
+
+                    cart.push({ event_code: code, quantity: 1 });
+                    saveCart();
+                    renderCart();
+                    showToast('Мероприятие добавлено в корзину', 'success');
+                }
+
+                function goToCheckout() {
+                    if (cart.length === 0) {
+                        showToast('Корзина пуста', 'error');
+                        return;
+                    }
+
+                    const firstItem = cart[0];
+                    const event = getEventByCode(firstItem.event_code);
+                    if (event) {
+                        const total = event.price * firstItem.quantity;
+                        window.location.href = `/payment?event_code=${firstItem.event_code}&quantity=${firstItem.quantity}&total_price=${total}`;
+                    } else {
+                        showToast('Ошибка загрузки мероприятия', 'error');
+                    }
+                }
+
+                function showToast(message, type) {
+                    const toast = document.createElement('div');
+                    toast.className = `toast-notification ${type}`;
+                    toast.textContent = message;
+                    document.body.appendChild(toast);
+                    setTimeout(() => {
+                        toast.classList.add('fade-out');
+                        setTimeout(() => toast.remove(), 300);
+                    }, 3000);
+                }
+
+                document.getElementById('addEventBtn').onclick = addSelectedEvent;
+                document.getElementById('checkoutBtn').onclick = goToCheckout;
+
+                loadCartFromStorage();
+            </script>
+</body>
+
+</html>

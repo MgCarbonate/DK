@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель - Заявки на сотрудничество</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" href="/img/logo-icon.jpg">
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+        <main>
+            <div class="adminstat">
+                <div class="admin-left">
+                    <div class="admin-menu-item" id="navStatistics">
+                        <p>Статистика</p>
+                    </div>
+                    <div class="admin-menu-item" id="navUsers">
+                        <p>Пользователи</p>
+                    </div>
+                    <div class="admin-menu-item">
+                        <p>Мероприятия</p>
+                    </div>
+                    <div class="admin-submenu">
+                        <p class="admin-m-txt" id="navEventsManage">Управление</p>
+                        <p class="admin-m-txt" id="navEventsStats">Статистика</p>
+                    </div>
+                    <div class="admin-menu-item active" id="navSotrud">
+                        <p>Сотрудничество</p>
+                    </div>
+                    <div class="admin-menu-item <%= adminPage === 'about' ? 'active' : '' %>" id="navAbout">
+                        <p>О нас</p>
+                    </div>
+                </div>
+                <div class="admin-right">
+                    <div class="sotrud-m-block">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <p style="font-weight: 700; color: #80191B;">Заявки на сотрудничество</p>
+                            <button id="archiveSotrudBtn" class="archive-btn-admin" style="margin-bottom: 0;">Архив
+                                заявок</button>
+                        </div>
+                        <input type="text" id="searchApplications"
+                            placeholder="Поиск по ФИО или названию мероприятия...">
+                        <div class="sotr-m-c-block">
+                            <div class="sotrud-m-cards" id="applicationsContainer"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Модальное окно для просмотра заявки -->
+        <div id="applicationModal" class="modal">
+            <div class="modal-content application-modal-content">
+                <span class="close" onclick="closeApplicationModal()">&times;</span>
+                <div id="applicationModalContent"></div>
+            </div>
+        </div>
+
+        <!-- Модальное окно архива заявок -->
+        <div id="archiveSotrudModal" class="modal" onclick="closeArchiveSotrudModalOnOverlay(event)">
+            <div class="modal-content"
+                style="width: 500px; max-width: 90%; max-height: 80vh; display: flex; flex-direction: column; background: white; border-radius: 30px; overflow: hidden;">
+                <div style="padding: 20px 20px 10px 20px; border-bottom: 2px solid #DAA655; background: white;">
+                    <span class="close" onclick="closeArchiveSotrudModal()"
+                        style="float: right; font-size: 28px; cursor: pointer; margin-top: -5px;">&times;</span>
+                    <h3 style="color: #80191B; font-size: 24px; font-weight: 700; text-align: center; margin: 0;">Архив
+                        заявок</h3>
+                    <input type="text" id="archiveSotrudSearch" placeholder="Поиск по ФИО или названию..."
+                        style="width: 100%; padding: 10px 15px; border: 2px solid #80191B; border-radius: 12px; font-size: 14px; margin-top: 15px; box-sizing: border-box; color: #80191B;">
+                </div>
+                <div id="archivedSotrudContainer"
+                    style="padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 15px; align-items: center;">
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let allApplications = [];
+            let filteredApplications = [];
+            let archivedApplications = [];
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/[&<>]/g, function (m) {
+                    if (m === '&') return '&amp;';
+                    if (m === '<') return '&lt;';
+                    if (m === '>') return '&gt;';
+                    return m;
+                });
+            }
+
+            function getStatusText(status) {
+                switch (status) {
+                    case 'pending': return 'Новая';
+                    default: return '';
+                }
+            }
+
+            function getStatusClass(status) {
+                switch (status) {
+                    case 'pending': return '#DAA655';
+                    default: return '';
+                }
+            }
+
+            function getStatusBg(status) {
+                switch (status) {
+                    case 'pending': return '#DAA65520';
+                    default: return '';
+                }
+            }
+
+            async function loadApplications() {
+                const container = document.getElementById('applicationsContainer');
+                if (container) {
+                    container.innerHTML = '<p style="text-align: center; width: 100%;">Загрузка...</p>';
+                }
+
+                try {
+                    const res = await fetch('/admin/api/sotrud/applications');
+                    const data = await res.json();
+
+                    if (data.success) {
+                        allApplications = data.applications;
+                        // Активные заявки: все, кроме archived
+                        const activeApplications = allApplications.filter(app => app.status !== 'archived');
+                        // Архивные заявки: только archived
+                        archivedApplications = allApplications.filter(app => app.status === 'archived');
+                        allApplications = activeApplications;
+                        applySearch();
+                    } else {
+                        if (container) container.innerHTML = '<p style="text-align: center; width: 100%;">Ошибка загрузки</p>';
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки:', error);
+                    if (container) container.innerHTML = '<p style="text-align: center; width: 100%;">Ошибка загрузки</p>';
+                }
+            }
+
+            function applySearch() {
+                const searchInput = document.getElementById('searchApplications');
+                const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+                if (!query) {
+                    filteredApplications = [...allApplications];
+                } else {
+                    filteredApplications = allApplications.filter(app =>
+                        (app.fio && app.fio.toLowerCase().includes(query)) ||
+                        (app.event_type && app.event_type.toLowerCase().includes(query))
+                    );
+                }
+                renderApplications();
+            }
+
+            function renderApplications() {
+                const container = document.getElementById('applicationsContainer');
+                if (!container) return;
+
+                if (filteredApplications.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; width: 100%; color: #80191B; font-size: 28px; font-weight: 600;">Нет активных заявок</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+
+                filteredApplications.forEach(app => {
+                    const card = document.createElement('div');
+                    card.className = 'admin-m-card';
+                    card.setAttribute('data-app-code', app.application_code);
+
+                    // Разный цвет рамки в зависимости от статуса
+                    if (app.status === 'pending') {
+                        card.style.borderLeft = `4px solid #DAA655`;
+                    } else if (app.status === 'approved') {
+                        card.style.borderLeft = `4px solid rgb(204, 204, 204)`;
+                    } else if (app.status === 'rejected') {
+                        card.style.borderLeft = `4px solid #80191B`;
+                    }
+
+                    // Текст статуса
+                    let statusText = '';
+                    let statusColor = '';
+                    let statusBg = '';
+                    if (app.status === 'pending') {
+                        statusText = 'Новая';
+                        statusColor = '#DAA655';
+                        statusBg = '#DAA65520';
+                    } else if (app.status === 'approved') {
+                        statusText = '✓ Одобрено';
+                        statusColor = 'white';
+                        statusBg = '#2e7d3220';
+                    } else if (app.status === 'rejected') {
+                        statusText = '✗ Отклонено';
+                        statusColor = '#80191B';
+                        statusBg = '#80191B20';
+                    }
+
+                    card.innerHTML = `
+            <div class="a-m-c-top">
+                <div class="a-m-c-t-l">
+                    <p class="a-m-c-name">${escapeHtml(app.event_type || 'Мероприятие')}</p>
+                    <p class="a-m-c-razd"><span>Зал: </span>${escapeHtml(app.space || '—')}</p>
+                </div>
+                <div class="a-m-c-t-r">
+                    <span style="font-size: 12px; padding: 4px 8px; border-radius: 12px; background: ${statusBg}; color: ${statusColor};">
+                        ${statusText}
+                    </span>
+                </div>
+            </div>
+            <div class="a-m-c-bot">
+                <div class="a-m-c-b-l">
+                    <div class="a-m-c-b-l-l">
+    <p><span>ФИО: </span>${escapeHtml(app.fio || '—')}</p>
+    <p><span>Почта: </span>${escapeHtml(app.email || '—')}</p>
+</div>
+<div class="a-m-c-b-l-l">
+    <p><span>№ заявки: </span>${app.application_code}</p>
+    <p><span>Дата подачи: </span>${new Date(app.created_at).toLocaleDateString('ru-RU')}</p>
+</div>
+                </div>
+                <div class="a-m-c-b-r">
+                    <button onclick="openApplicationModal(${app.application_code})">Открыть</button>
+                </div>
+            </div>
+        `;
+                    container.appendChild(card);
+                });
+            }
+
+            async function restoreApplication(appCode) {
+                try {
+                    const res = await fetch(`/admin/api/sotrud/applications/restore/${appCode}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        await loadApplications();
+                        // Обновляем архивный список
+                        renderArchivedSotrud(archivedApplications);
+                        showToast('Заявка восстановлена из архива', 'success');
+                        // Закрываем архивное окно, если открыто
+                        closeArchiveSotrudModal();
+                    } else {
+                        showToast(data.message || 'Ошибка', 'error');
+                    }
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                    showToast('Ошибка сервера', 'error');
+                }
+            }
+
+            function renderArchivedSotrud(applications) {
+                const container = document.getElementById('archivedSotrudContainer');
+                const searchInput = document.getElementById('archiveSotrudSearch');
+
+                if (!container) return;
+
+                if (applications.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; width: 100%; color: #80191B; font-size: 22px; font-weight: 600;">Нет архивных заявок</p>';
+                    // Скрываем поле поиска, если нет заявок
+                    if (searchInput) searchInput.style.display = 'none';
+                    return;
+                }
+
+                // Показываем поле поиска, если есть заявки
+                if (searchInput) searchInput.style.display = 'block';
+
+                container.innerHTML = applications.map(app => `
+        <div class="admin-m-card" style="border-left: 4px solid #666; opacity: 0.8;">
+            <div class="a-m-c-top">
+                <div class="a-m-c-t-l">
+                    <p class="a-m-c-name">${escapeHtml(app.event_type || 'Мероприятие')}</p>
+                   <p class="a-m-c-razd"><span>Зал: </span>${escapeHtml(app.space || '—')}</p>
+                    
+                </div>
+            </div>
+            <div class="a-m-c-bot">
+                <div class="a-m-c-b-l">
+    <div class="a-m-c-b-l-l">
+        <p><span>ФИО: </span>${escapeHtml(app.fio || '—')}</p>
+        <p><span>Почта: </span>${escapeHtml(app.email || '—')}</p>
+    </div>
+    <div class="a-m-c-b-l-l">
+        <p><span>№ заявки: </span>${app.application_code}</p>
+        <p><span>Дата подачи: </span>${new Date(app.created_at).toLocaleDateString('ru-RU')}</p>
+    </div>
+</div>
+                <div class="a-m-c-b-r">
+                    <button onclick="restoreApplication(${app.application_code})" style="background-color: #2e7d32; color: white;">Вернуть</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+            }
+
+            async function archiveApplication(appCode) {
+                try {
+                    const res = await fetch(`/admin/api/sotrud/applications/archive/${appCode}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        await loadApplications();
+                        closeApplicationModal();
+                        showToast('Заявка перемещена в архив', 'success');
+                    } else {
+                        showToast(data.message || 'Ошибка', 'error');
+                    }
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                    showToast('Ошибка сервера', 'error');
+                }
+            }
+
+            function openApplicationModal(appCode) {
+    const application = allApplications.find(a => a.application_code === appCode);
+    if (!application) return;
+
+    const modalContent = document.getElementById('applicationModalContent');
+
+    // Показываем кнопки в зависимости от статуса
+    let buttonsHtml = '';
+    if (application.status === 'pending') {
+        buttonsHtml = `
+            <button class="app-modal-btn approve" onclick="updateApplicationStatus(${application.application_code}, 'approved')">Принять</button>
+            <button class="app-modal-btn reject" onclick="updateApplicationStatus(${application.application_code}, 'rejected')">Отклонить</button>
+            <button class="app-modal-btn archive" onclick="archiveApplication(${application.application_code})" style="background-color: #666; color: white;">В архив</button>
+        `;
+    } else {
+        // Для approved/rejected только кнопка архива
+        buttonsHtml = `
+            <button class="app-modal-btn archive" onclick="archiveApplication(${application.application_code})" style="background-color: #666; color: white;">Перенести в архив</button>
+        `;
+    }
+
+    modalContent.innerHTML = `
+        <div class="application-modal-inner">
+            <h2 class="app-modal-title">${escapeHtml(application.event_type || 'Мероприятие')}</h2>
+            
+            <div class="app-modal-info">
+                <p><span class="app-modal-label">№ заявки:</span> <span class="app-modal-value">${application.application_code}</span></p>
+                <p><span class="app-modal-label">Дата подачи:</span> <span class="app-modal-value">${new Date(application.created_at).toLocaleString('ru-RU')}</span></p>
+                <p><span class="app-modal-label">ФИО:</span> <span class="app-modal-value">${escapeHtml(application.fio || '—')}</span></p>
+                <p><span class="app-modal-label">Почта:</span> <span class="app-modal-value">${escapeHtml(application.email || '—')}</span></p>
+                <p><span class="app-modal-label">Зал:</span> <span class="app-modal-value">${escapeHtml(application.space || '—')}</span></p>
+                <p><span class="app-modal-label">Длительность:</span> <span class="app-modal-value">${escapeHtml(application.duration || '—')}</span></p>
+                <p><span class="app-modal-label">Стоимость:</span> <span class="app-modal-value">${escapeHtml(application.ticket_price || '—')}₽</span></p>
+            </div>
+            
+            <div class="app-modal-description">
+                <p class="app-modal-desc-text">${escapeHtml(application.description || '—').replace(/\n/g, '<br>')}</p>
+            </div>
+            
+            <hr class="app-modal-line">
+            
+            <div class="app-modal-buttons">
+                ${buttonsHtml}
+            </div>
+        </div>
+    `;
+
+    const modal = document.getElementById('applicationModal');
+    modal.classList.remove('closing');
+    modal.classList.add('show');
+    document.body.classList.add('modal-open');
+    
+    // Добавляем обработчик клика по фону
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            closeApplicationModal();
+        }
+    };
+            }
+           function closeApplicationModal() {
+    const modal = document.getElementById('applicationModal');
+    if (modal) {
+        modal.classList.add('closing');
+        setTimeout(() => {
+            modal.classList.remove('show', 'closing');
+            document.body.classList.remove('modal-open');
+            // Убираем обработчик
+            modal.onclick = null;
+        }, 300);
+    }
+}
+
+            async function updateApplicationStatus(appCode, status) {
+                try {
+                    const res = await fetch(`/admin/api/sotrud/applications/${appCode}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status })
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        await loadApplications();
+                        closeApplicationModal();
+                        showToast(data.message, 'success');
+                    } else {
+                        showToast(data.message || 'Ошибка', 'error');
+                    }
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                    showToast('Ошибка сервера', 'error');
+                }
+            }
+
+            function showToast(message, type) {
+                const existingToast = document.querySelector('.toast-notification');
+                if (existingToast) existingToast.remove();
+
+                const toast = document.createElement('div');
+                toast.className = `toast-notification ${type}`;
+                toast.textContent = message;
+                document.body.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.classList.add('fade-out');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+
+           function openArchiveSotrudModal() {
+    renderArchivedSotrud(archivedApplications);
+    const modal = document.getElementById('archiveSotrudModal');
+    const searchInput = document.getElementById('archiveSotrudSearch');
+
+    // При открытии проверяем, есть ли заявки, и показываем/скрываем поле поиска
+    if (searchInput) {
+        searchInput.style.display = archivedApplications.length > 0 ? 'block' : 'none';
+        searchInput.value = ''; // Очищаем поиск при открытии
+    }
+
+    modal.classList.remove('closing');
+    modal.classList.add('show');
+    document.body.classList.add('modal-open');
+    
+    // Добавляем обработчик клика по фону
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            closeArchiveSotrudModal();
+        }
+    };
+}
+
+            function closeArchiveSotrudModal() {
+    const modal = document.getElementById('archiveSotrudModal');
+    if (modal) {
+        modal.classList.add('closing');
+        setTimeout(() => {
+            modal.classList.remove('show', 'closing');
+            document.body.classList.remove('modal-open');
+            modal.onclick = null;
+        }, 300);
+    }
+}
+
+            function closeArchiveSotrudModalOnOverlay(event) {
+                if (event.target === document.getElementById('archiveSotrudModal')) {
+                    closeArchiveSotrudModal();
+                }
+            }
+
+            // Навигация
+            document.getElementById('navStatistics').onclick = () => window.location.href = '/admin/statistics';
+            document.getElementById('navUsers').onclick = () => window.location.href = '/admin/users';
+            document.getElementById('navEventsManage').onclick = () => window.location.href = '/admin/events';
+            document.getElementById('navEventsStats').onclick = () => window.location.href = '/admin/events-stats';
+            document.getElementById('navSotrud').onclick = () => window.location.href = '/admin/sotrud';
+            document.getElementById('navAbout').onclick = () => window.location.href = '/admin/about';
+            // Поиск в активных
+            const searchInput = document.getElementById('searchApplications');
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    applySearch();
+                });
+            }
+
+            // Поиск в архиве
+            document.getElementById('archiveSotrudSearch')?.addEventListener('input', function (e) {
+                const query = e.target.value.toLowerCase();
+                const filtered = archivedApplications.filter(app =>
+                    (app.fio && app.fio.toLowerCase().includes(query)) ||
+                    (app.event_type && app.event_type.toLowerCase().includes(query))
+                );
+                renderArchivedSotrud(filtered);
+            });
+
+            // Кнопка архива
+            document.getElementById('archiveSotrudBtn').onclick = () => openArchiveSotrudModal();
+
+            // Загрузка заявок
+            loadApplications();
+
+            // Скрываем поле поиска в архиве при загрузке, если нет заявок
+            const archiveSearchInput = document.getElementById('archiveSotrudSearch');
+            if (archiveSearchInput && archivedApplications.length === 0) {
+                archiveSearchInput.style.display = 'none';
+            }
+
+            // Экспорт в глобальную область
+            window.updateApplicationStatus = updateApplicationStatus;
+            window.archiveApplication = archiveApplication;
+            window.closeApplicationModal = closeApplicationModal;
+            window.restoreApplication = restoreApplication;
+        </script>
+
+        <script>
+    // Админ-панель бургер-меню (только для мобильных)
+    document.addEventListener('DOMContentLoaded', function() {
+        const adminLeft = document.querySelector('.admin-left');
+        if (adminLeft && window.innerWidth <= 768) {
+            // Добавляем класс для мобильной версии
+            adminLeft.classList.add('admin-left-mobile');
+            
+            // Добавляем бургер в админку, если его нет
+            const adminStat = document.querySelector('.adminstat');
+            if (adminStat && !document.querySelector('.admin-burger')) {
+                const burgerHtml = `
+                    <div class="admin-burger">
+                        <span class="admin-burger-title">Меню</span>
+                        <div class="admin-burger-btn">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                    <div class="admin-menu-overlay"></div>
+                `;
+                adminStat.insertAdjacentHTML('afterbegin', burgerHtml);
+                
+                const burgerBtn = document.querySelector('.admin-burger-btn');
+                const overlay = document.querySelector('.admin-menu-overlay');
+                
+                function toggleAdminMenu() {
+                    adminLeft.classList.toggle('active');
+                    burgerBtn.classList.toggle('active');
+                    overlay.classList.toggle('active');
+                    if (adminLeft.classList.contains('active')) {
+                        document.body.style.overflow = 'hidden';
+                    } else {
+                        document.body.style.overflow = '';
+                    }
+                }
+                
+                if (burgerBtn) {
+                    burgerBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        toggleAdminMenu();
+                    });
+                }
+                
+                if (overlay) {
+                    overlay.addEventListener('click', toggleAdminMenu);
+                }
+                
+                // Закрытие при клике на пункты меню
+                document.querySelectorAll('.admin-left .admin-menu-item, .admin-left .admin-m-txt').forEach(item => {
+                    item.addEventListener('click', () => {
+                        if (window.innerWidth <= 768) {
+                            toggleAdminMenu();
+                        }
+                    });
+                });
+            }
+        }
+    });
+
+    // Адаптация при изменении размера окна
+    window.addEventListener('resize', function() {
+        const nav = document.querySelector('.nav');
+        const burger = document.querySelector('.burger-menu');
+        const adminLeft = document.querySelector('.admin-left');
+        const overlay = document.querySelector('.admin-menu-overlay');
+        const burgerBtn = document.querySelector('.admin-burger-btn');
+        
+        if (window.innerWidth > 768) {
+            if (nav) nav.classList.remove('active');
+            if (burger) burger.classList.remove('active');
+            if (adminLeft) {
+                adminLeft.classList.remove('active');
+                // Убираем мобильные стили
+                adminLeft.style.left = '';
+                adminLeft.style.position = '';
+            }
+            if (overlay) overlay.classList.remove('active');
+            if (burgerBtn) burgerBtn.classList.remove('active');
+            document.body.style.overflow = '';
+        } else {
+            // Для мобильных - восстанавливаем
+            if (adminLeft) {
+                adminLeft.style.left = '';
+                adminLeft.style.position = 'fixed';
+            }
+        }
+    });
+</script>
+</body>
+
+</html>

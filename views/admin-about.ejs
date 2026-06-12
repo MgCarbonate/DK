@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель - Управление страницей "О нас"</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" href="/img/logo-icon.jpg">
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+        <main>
+            <div class="adminstat">
+                <div class="admin-left">
+                    <div class="admin-menu-item <%= adminPage === 'statistics' ? 'active' : '' %>" id="navStatistics">
+                        <p>Статистика</p>
+                    </div>
+                    <div class="admin-menu-item <%= adminPage === 'users' ? 'active' : '' %>" id="navUsers">
+                        <p>Пользователи</p>
+                    </div>
+                    <div class="admin-menu-item">
+                        <p>Мероприятия</p>
+                    </div>
+                    <div class="admin-submenu">
+                        <p class="admin-m-txt <%= adminPage === 'events' ? 'admin-m-txt-active' : '' %>" id="navEventsManage">Управление</p>
+                        <p class="admin-m-txt <%= adminPage === 'events-stats' ? 'admin-m-txt-active' : '' %>" id="navEventsStats">Статистика</p>
+                    </div>
+                    <div class="admin-menu-item <%= adminPage === 'sotrud' ? 'active' : '' %>" id="navSotrud">
+                        <p>Сотрудничество</p>
+                    </div>
+                    <div class="admin-menu-item <%= adminPage === 'about' ? 'active' : '' %>" id="navAbout">
+                        <p>О нас</p>
+                    </div>
+                </div>
+                
+                <div class="admin-right">
+                    <div class="last-acts">
+                        <p class="last-p" style="margin-bottom: 40px;">Управление страницей «О нас»</p>
+                        
+                        <!-- Баннер -->
+                        <div style="margin-bottom: 40px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <p style="font-size: 24px; font-weight: 700; color: #80191B;">Баннер</p>
+                                <button id="changeBannerBtn" class="add-meropr-btn" style="color: #DAA655; background-color: #80191B; font-size: 16px; margin: 0;">Изменить фото</button>
+                            </div>
+                            <div>
+                                <img id="bannerPreview" src="<%= bannerImage %>" alt="Баннер" style="width: 100%; max-height: 300px; object-fit: cover; border-radius: 12px;">
+                            </div>
+                        </div>
+                        
+                        <!-- Сотрудники -->
+<div style="margin-top: 40px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; ">
+        <p style="font-size: 24px; font-weight: 700; color: #80191B;">Сотрудники</p>
+    </div>
+    
+    <input type="text" id="searchStaff" placeholder="Поиск по имени..." class="search-meropr" style="margin-bottom: 20px;">
+    
+    <div id="staffContainer" class="staff-cards-grid">
+        <!-- Карточки сотрудников будут здесь -->
+    </div>
+</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Модальное окно для редактирования сотрудника -->
+        <div id="staffModal" class="modal">
+            <div class="modal-content profile-modal" style="width: 500px;">
+                <span class="close" onclick="closeStaffModal()">&times;</span>
+                <h3 class="cards-title">Редактировать сотрудника</h3>
+                <div id="staffModalMessage" class="modal-message" style="display: none;"></div>
+                
+                <input type="hidden" id="editStaffCode">
+                
+                <label style="font-size: 16px; font-weight: 600; color: #80191B;">Имя:</label>
+                <input type="text" id="staffName" class="profile-input" placeholder="Введите имя" style="margin-top: 5px;">
+                
+                <label style="font-size: 16px; font-weight: 600; color: #80191B; margin-top: 15px;">Должность:</label>
+                <input type="text" id="staffPosition" class="profile-input" placeholder="Введите должность" style="margin-top: 5px;">
+                
+                <label style="font-size: 16px; font-weight: 600; color: #80191B; margin-top: 15px;">Фото:</label>
+                <div style="display: flex; gap: 15px; align-items: flex-end; margin-top: 5px;">
+                    <img id="staffPhotoPreview" src="/img/about-empl.png" style="width: 80px; height: 80px; object-fit: cover; border-radius: 12px;">
+                    <button id="uploadStaffPhotoBtn" class="add-meropr-btn" style="background-color: #DAA655; color: #80191B; font-size: 14px; margin: 0; align-self: flex-end;">Загрузить фото</button>
+                </div>
+                <input type="hidden" id="staffPhoto">
+                
+                <div style="display: flex; gap: 15px; margin-top: 25px;">
+                    <button id="saveStaffBtn" class="profile-save-btn" style="background-color: #DAA655 ; width: 300px;">Сохранить</button>
+                    <button onclick="closeStaffModal()" class="profile-save-btn" style="background-color: #80191B; color:white; width: 200px;">Отмена</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let allStaff = [];
+            
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/[&<>]/g, function(m) {
+                    if (m === '&') return '&amp;';
+                    if (m === '<') return '&lt;';
+                    if (m === '>') return '&gt;';
+                    return m;
+                });
+            }
+            
+            function showToast(message, type) {
+                const existingToast = document.querySelector('.toast-notification');
+                if (existingToast) existingToast.remove();
+                
+                const toast = document.createElement('div');
+                toast.className = `toast-notification ${type}`;
+                toast.textContent = message;
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.classList.add('fade-out');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+            
+            async function loadStaff() {
+                try {
+                    const res = await fetch('/admin/api/about/staff');
+                    const data = await res.json();
+                    if (data.success) {
+                        allStaff = data.staff;
+                        renderStaff(allStaff);
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки:', error);
+                }
+            }
+            
+            function renderStaff(staff) {
+    const container = document.getElementById('staffContainer');
+    const searchQuery = document.getElementById('searchStaff')?.value.toLowerCase() || '';
+    
+    let filteredStaff = staff;
+    if (searchQuery) {
+        filteredStaff = staff.filter(s => s.name.toLowerCase().includes(searchQuery));
+    }
+    
+    if (filteredStaff.length === 0) {
+        container.innerHTML = '<p style="text-align: center; width: 100%; padding: 40px; color: #80191B;">Сотрудники не найдены</p>';
+        return;
+    }
+    
+    container.innerHTML = filteredStaff.map(member => `
+        <div class="staff-card-item">
+            <img class="staff-card-photo" src="${member.photo}" alt="${escapeHtml(member.name)}">
+            <div class="staff-card-info">
+                <div class="staff-card-name">${escapeHtml(member.name)}</div>
+                <div class="staff-card-position">${escapeHtml(member.position)}</div>
+                <button class="staff-card-btn" onclick="editStaff(${member.staff_code})">
+                Изменить
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+            
+            document.getElementById('searchStaff')?.addEventListener('input', function() {
+                renderStaff(allStaff);
+            });
+            
+            // Баннер
+            document.getElementById('changeBannerBtn')?.addEventListener('click', function() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/jpeg,image/png,image/gif,image/webp';
+                input.onchange = async function() {
+                    const file = input.files[0];
+                    if (!file) return;
+                    
+                    const formData = new FormData();
+                    formData.append('banner', file);
+                    
+                    const btn = document.getElementById('changeBannerBtn');
+                    const originalText = btn.textContent;
+                    btn.textContent = 'Загрузка...';
+                    btn.disabled = true;
+                    
+                    try {
+                        const res = await fetch('/admin/api/about/upload-banner', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            document.getElementById('bannerPreview').src = data.imagePath + '?t=' + Date.now();
+                            showToast('Баннер обновлен!', 'success');
+                        } else {
+                            showToast(data.message || 'Ошибка загрузки', 'error');
+                        }
+                    } catch (error) {
+                        showToast('Ошибка сервера', 'error');
+                    } finally {
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                    }
+                };
+                input.click();
+            });
+            
+            
+            let currentEditStaffCode = null;
+            let uploadedStaffPhoto = null;
+            
+            function editStaff(staffCode) {
+                const staff = allStaff.find(s => s.staff_code === staffCode);
+                if (!staff) return;
+                
+                currentEditStaffCode = staffCode;
+                document.getElementById('editStaffCode').value = staff.staff_code;
+                document.getElementById('staffName').value = staff.name;
+                document.getElementById('staffPosition').value = staff.position;
+                document.getElementById('staffPhotoPreview').src = staff.photo;
+                document.getElementById('staffPhoto').value = staff.photo;
+                uploadedStaffPhoto = staff.photo;
+                
+                document.getElementById('staffModalMessage').style.display = 'none';
+                const modal = document.getElementById('staffModal');
+                modal.classList.remove('closing');
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+            
+            function closeStaffModal() {
+                const modal = document.getElementById('staffModal');
+                modal.classList.add('closing');
+                setTimeout(() => {
+                    modal.classList.remove('show', 'closing');
+                    document.body.style.overflow = '';
+                }, 300);
+                currentEditStaffCode = null;
+                uploadedStaffPhoto = null;
+            }
+            
+            document.getElementById('uploadStaffPhotoBtn')?.addEventListener('click', function() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/jpeg,image/png,image/gif,image/webp';
+                input.onchange = async function() {
+                    const file = input.files[0];
+                    if (!file) return;
+                    
+                    const formData = new FormData();
+                    formData.append('photo', file);
+                    
+                    const btn = document.getElementById('uploadStaffPhotoBtn');
+                    const originalText = btn.textContent;
+                    btn.textContent = 'Загрузка...';
+                    btn.disabled = true;
+                    
+                    try {
+                        const res = await fetch('/admin/api/about/staff/upload-photo', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            uploadedStaffPhoto = data.imagePath;
+                            document.getElementById('staffPhotoPreview').src = data.imagePath + '?t=' + Date.now();
+                            document.getElementById('staffPhoto').value = data.imagePath;
+                            showToast('Фото загружено!', 'success');
+                        } else {
+                            showToast(data.message || 'Ошибка загрузки', 'error');
+                        }
+                    } catch (error) {
+                        showToast('Ошибка сервера', 'error');
+                    } finally {
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                    }
+                };
+                input.click();
+            });
+            
+            document.getElementById('saveStaffBtn')?.addEventListener('click', async function() {
+                if (!currentEditStaffCode) return;
+                
+                const name = document.getElementById('staffName').value.trim();
+                const position = document.getElementById('staffPosition').value.trim();
+                const photo = uploadedStaffPhoto || document.getElementById('staffPhoto').value;
+                
+                if (!name || !position) {
+                    const msgDiv = document.getElementById('staffModalMessage');
+                    msgDiv.textContent = 'Заполните имя и должность';
+                    msgDiv.className = 'modal-message error';
+                    msgDiv.style.display = 'block';
+                    setTimeout(() => msgDiv.style.display = 'none', 3000);
+                    return;
+                }
+                
+                try {
+                    const res = await fetch(`/admin/api/about/staff/${currentEditStaffCode}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, position, photo })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast('Сотрудник обновлен!', 'success');
+                        closeStaffModal();
+                        loadStaff();
+                    } else {
+                        const msgDiv = document.getElementById('staffModalMessage');
+                        msgDiv.textContent = data.message || 'Ошибка';
+                        msgDiv.className = 'modal-message error';
+                        msgDiv.style.display = 'block';
+                        setTimeout(() => msgDiv.style.display = 'none', 3000);
+                    }
+                } catch (error) {
+                    const msgDiv = document.getElementById('staffModalMessage');
+                    msgDiv.textContent = 'Ошибка сервера';
+                    msgDiv.className = 'modal-message error';
+                    msgDiv.style.display = 'block';
+                    setTimeout(() => msgDiv.style.display = 'none', 3000);
+                }
+            });
+            
+            // Навигация
+            document.getElementById('navStatistics').onclick = () => window.location.href = '/admin/statistics';
+            document.getElementById('navUsers').onclick = () => window.location.href = '/admin/users';
+            document.getElementById('navEventsManage').onclick = () => window.location.href = '/admin/events';
+            document.getElementById('navEventsStats').onclick = () => window.location.href = '/admin/events-stats';
+            document.getElementById('navSotrud').onclick = () => window.location.href = '/admin/sotrud';
+            document.getElementById('navAbout').onclick = () => window.location.href = '/admin/about';
+            
+            loadStaff();
+        </script>
+
+        <script>
+    // Админ-панель бургер-меню (только для мобильных)
+    document.addEventListener('DOMContentLoaded', function() {
+        const adminLeft = document.querySelector('.admin-left');
+        if (adminLeft && window.innerWidth <= 768) {
+            // Добавляем класс для мобильной версии
+            adminLeft.classList.add('admin-left-mobile');
+            
+            // Добавляем бургер в админку, если его нет
+            const adminStat = document.querySelector('.adminstat');
+            if (adminStat && !document.querySelector('.admin-burger')) {
+                const burgerHtml = `
+                    <div class="admin-burger">
+                        <span class="admin-burger-title">Меню</span>
+                        <div class="admin-burger-btn">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                    <div class="admin-menu-overlay"></div>
+                `;
+                adminStat.insertAdjacentHTML('afterbegin', burgerHtml);
+                
+                const burgerBtn = document.querySelector('.admin-burger-btn');
+                const overlay = document.querySelector('.admin-menu-overlay');
+                
+                function toggleAdminMenu() {
+                    adminLeft.classList.toggle('active');
+                    burgerBtn.classList.toggle('active');
+                    overlay.classList.toggle('active');
+                    if (adminLeft.classList.contains('active')) {
+                        document.body.style.overflow = 'hidden';
+                    } else {
+                        document.body.style.overflow = '';
+                    }
+                }
+                
+                if (burgerBtn) {
+                    burgerBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        toggleAdminMenu();
+                    });
+                }
+                
+                if (overlay) {
+                    overlay.addEventListener('click', toggleAdminMenu);
+                }
+                
+                // Закрытие при клике на пункты меню
+                document.querySelectorAll('.admin-left .admin-menu-item, .admin-left .admin-m-txt').forEach(item => {
+                    item.addEventListener('click', () => {
+                        if (window.innerWidth <= 768) {
+                            toggleAdminMenu();
+                        }
+                    });
+                });
+            }
+        }
+    });
+
+    // Адаптация при изменении размера окна
+    window.addEventListener('resize', function() {
+        const nav = document.querySelector('.nav');
+        const burger = document.querySelector('.burger-menu');
+        const adminLeft = document.querySelector('.admin-left');
+        const overlay = document.querySelector('.admin-menu-overlay');
+        const burgerBtn = document.querySelector('.admin-burger-btn');
+        
+        if (window.innerWidth > 768) {
+            if (nav) nav.classList.remove('active');
+            if (burger) burger.classList.remove('active');
+            if (adminLeft) {
+                adminLeft.classList.remove('active');
+                // Убираем мобильные стили
+                adminLeft.style.left = '';
+                adminLeft.style.position = '';
+            }
+            if (overlay) overlay.classList.remove('active');
+            if (burgerBtn) burgerBtn.classList.remove('active');
+            document.body.style.overflow = '';
+        } else {
+            // Для мобильных - восстанавливаем
+            if (adminLeft) {
+                adminLeft.style.left = '';
+                adminLeft.style.position = 'fixed';
+            }
+        }
+    });
+</script>
+</body>
+
+</html>

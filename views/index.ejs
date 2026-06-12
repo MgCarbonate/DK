@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Главная</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" href="/img/logo-icon.jpg">
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+        <main>
+            <div class="banner-home">
+                <div class="banner-home-name">
+                    <div class="banner-home-name-top">
+                        <img src="/img/logo.svg" alt="" class="logo-banner">
+                        <img src="/img/spark-banner-home.svg" alt="">
+                    </div>
+                    <div class="banner-home-name-bot">
+                        <p>Уютное творческое пространство</p>
+                        <img src="/img/banner-home-line.svg" alt="">
+                    </div>
+                </div>
+            </div>
+            <div class="meropr-head">
+                <img src="/img/garland.png" class="garland-img-red">
+                <img src="/img/garland.png" class="garland-img-red">
+            </div>
+            <div class="meropr">
+                <div class="meropr-zag">
+                    <p>Наши мероприятия</p>
+                </div>
+                <div class="meropr-cards" id="eventsContainer">
+                    <!-- Карточки загружаются через JS -->
+                </div>
+            </div>
+            <div class="meropr-button" onclick="location.href='/events'">
+                <p>Показать еще</p>
+            </div>
+            <div class="sotrud-block">
+                <div class="sotrud-info">
+                    <div class="sotrud-top">
+                        <div class="sotrud-top-left">
+                            <p class="sotrud-name">Давайте сотрудничать!</p>
+                            <p class="sotrud-opis">Какие мероприятия мы принимаем с теплотой: мастер-классы, лекции,
+                                встречи
+                                клубов по интересам, локальные торжества и корпоративные события. </p>
+                        </div>
+                        <div class="sotrud-top-right">
+                            <button>Пространства для брони</button>
+                        </div>
+                    </div>
+                    <form class="sotrud-form" id="sotrudForm" novalidate>
+                        <div class="sotrud-form-blocks">
+                            <input type="text" name="fio" placeholder="ФИО" class="sotrud-form-one" required>
+                            <input type="email" name="email" placeholder="Почта" class="sotrud-form-one" required>
+                            <select name="space" class="sotrud-form-two" required>
+                                <option value="">Пространство</option>
+                                <option value="Синий зал">Синий зал</option>
+                                <option value="Большой зал">Большой зал. Оба формата</option>
+                                <option value="Большой зал. Лекторий">Формат лекторий</option>
+                                <option value="Большой зал. Мастер-класс">Формат мастер-класс</option>
+                            </select>
+                        </div>
+                        <div class="sotrud-form-blocks">
+                            <input type="text" name="event_type" placeholder="Вид мероприятия" class="sotrud-form-one">
+                            <input type="text" name="duration" placeholder="Длительность" class="sotrud-form-three">
+                            <input type="text" name="ticket_price" id="ticketPrice" placeholder="Стоимость билета*" class="sotrud-form-four" inputmode="numeric" pattern="\d*">
+                        </div>
+                        <div class="sotrud-form-area">
+                            <textarea name="description" class="sotrud-form-five" placeholder="Описание и дополнительная информация"></textarea>
+                            <p class="ps">*Может быть скорректирована при согласовании</p>
+                        </div>
+                        <div class="sotrud-form-btn">
+                            <button type="submit" class="sotrud-form-btn-submit">Отправить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+
+        <%- include('partials/footer') %>
+
+            <!-- Модальное окно -->
+            <div id="modal" class="modal">
+                <div class="modal-content">
+                    <span class="close" onclick="closeModal()">&times;</span>
+                    <div class="mvm">
+                        <div class="meropr-modal-wind">
+                            <div class="mwm-r" id="modalContent">
+                                <!-- Содержимое заполняется динамически -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Модальное окно с пространствами -->
+            <div id="spacesModal" class="modal">
+                <div class="modal-content spaces-modal-content">
+                    <span class="close" onclick="closeSpacesModal()">&times;</span>
+                    <div class="spaces-modal-inner">
+                        <div class="spaces-modal-zag">
+                            <hr>
+                            <p>Пространства для брони</p>
+                            <hr>
+                        </div>
+                        <div class="spaces-modal-images">
+                            <img src="/img/space-1.png" alt="">
+                            <img src="/img/space-2.png" alt="">
+                            <img src="/img/space-3.png" alt="">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                // ==================== МОДАЛЬНОЕ ОКНО ПРОСТРАНСТВ ====================
+                const spacesModal = document.getElementById('spacesModal');
+                let scrollbarWidth = 0;
+                
+                function getScrollbarWidth() {
+                    const div = document.createElement('div');
+                    div.style.overflow = 'scroll';
+                    div.style.width = '50px';
+                    div.style.height = '50px';
+                    document.body.appendChild(div);
+                    const width = div.offsetWidth - div.clientWidth;
+                    document.body.removeChild(div);
+                    return width;
+                }
+                
+                function openSpacesModal() {
+                    scrollbarWidth = getScrollbarWidth();
+                    document.body.style.paddingRight = scrollbarWidth + 'px';
+                    document.body.classList.add('modal-open-spaces');
+                    spacesModal.classList.add('show');
+                }
+                
+                function closeSpacesModal() {
+                    spacesModal.classList.remove('show');
+                    document.body.style.paddingRight = '';
+                    document.body.classList.remove('modal-open-spaces');
+                }
+                
+                document.querySelector('.sotrud-top-right button')?.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    openSpacesModal();
+                });
+                
+                spacesModal?.addEventListener('click', (e) => {
+                    if (e.target === spacesModal) {
+                        closeSpacesModal();
+                    }
+                });
+                
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && spacesModal?.classList.contains('show')) {
+                        closeSpacesModal();
+                    }
+                });
+
+                
+
+                function showToastRight(message, type) {
+                    const existingToast = document.querySelector('.toast-notification');
+                    if (existingToast) existingToast.remove();
+
+                    const toast = document.createElement('div');
+                    toast.className = `toast-notification ${type}`;
+                    toast.textContent = message;
+                    document.body.appendChild(toast);
+
+                    setTimeout(() => {
+                        toast.classList.add('fade-out');
+                        setTimeout(() => toast.remove(), 300);
+                    }, 3000);
+                }
+                // ==================== МЕРОПРИЯТИЯ ====================
+                let currentEventCode = null;
+                let allEvents = [];
+
+                async function loadEvents() {
+    try {
+        const res = await fetch('/api/events/all');
+        const data = await res.json();
+        if (data.success) {
+            allEvents = data.events;
+            renderEvents(allEvents.slice(0, 6));
+        } else {
+            const meroprButton = document.querySelector('.meropr-button');
+            if (meroprButton) meroprButton.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки:', error);
+        const meroprButton = document.querySelector('.meropr-button');
+        if (meroprButton) meroprButton.style.display = 'none';
+    }
+}
+
+                function formatDateShort(dateStr) {
+                    const date = new Date(dateStr);
+                    return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+                }
+
+                function formatDateWithoutYear(dateStr) {
+                    const date = new Date(dateStr);
+                    return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+                }
+
+                function renderEvents(events) {
+    const container = document.getElementById('eventsContainer');
+    const meroprButton = document.querySelector('.meropr-button');
+    
+    if (!container) return;
+    
+    if (!events || events.length === 0) {
+        container.innerHTML = `<p style="text-align: center; width: 100%; font-size: 24px; color: #80191B; padding: 60px 0;">Мероприятий пока нет</p>`;
+        // Скрываем кнопку "Показать еще"
+        if (meroprButton) meroprButton.style.display = 'none';
+        return;
+    }
+    
+    // Показываем кнопку, если есть мероприятия
+    if (meroprButton) meroprButton.style.display = 'flex';
+    
+    container.innerHTML = events.map(event => `
+        <div class="meropr-card" style="background-image: url('${event.image || '/img/meropr-card-img.png'}'); background-size: cover; background-position: center; cursor: pointer;" onclick="openModal(${event.event_code})">
+            <div class="card-effect">
+                <div class="meropr-card-info">
+                    <div class="meropr-opis">
+                        <p class="meropr-card-name">${escapeHtml(event.title_short)}</p>
+                        <p class="meropr-card-razd">${escapeHtml(event.event_type)}</p>
+                    </div>
+                    <div class="memchik">
+                        <p class="date-time">${formatDateShort(event.date)} ${event.time}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+                function escapeHtml(str) {
+                    if (!str) return '';
+                    return str.replace(/[&<>]/g, function(m) {
+                        if (m === '&') return '&amp;';
+                        if (m === '<') return '&lt;';
+                        if (m === '>') return '&gt;';
+                        return m;
+                    });
+                }
+
+                async function openModal(eventCode) {
+                    currentEventCode = eventCode;
+                    const event = allEvents.find(e => e.event_code === eventCode);
+                    if (!event) return;
+
+                    const isAdmin = <%= user && user.is_admin ? 'true' : 'false' %>;
+
+                    scrollbarWidth = getScrollbarWidth();
+                    document.body.style.paddingRight = scrollbarWidth + 'px';
+                    document.body.classList.add('modal-open');
+
+                    const modalContent = document.getElementById('modalContent');
+                    modalContent.innerHTML = `
+                        <div class="mwm-r-t">
+                            <div class="mvm-r-t-t">
+                                <p class="mvm-r-t-t-name">${escapeHtml(event.title_full)}</p>
+                                <p class="mvm-r-t-t-opis">${escapeHtml(event.event_type)}</p>
+                            </div>
+                            <div class="mvm-r-t-b">
+                                <p class="mvm-r-t-t-opis"><span>Куратор:</span> ${escapeHtml(event.curator)}</p>
+                                <p class="mvm-r-t-t-opis">${formatDateWithoutYear(event.date)} <span>${event.time}</span></p>
+                            </div>
+                        </div>
+                        <div class="mwm-txt">
+                            <p>${escapeHtml(event.description || 'Описание отсутствует').replace(/\n/g, '<br>')}</p>
+                        </div>
+                        <div class="mwm-r-b">
+                            <hr class="mvm-line">
+                            <div class="mvm-underline">
+                                <div class="tick-cost">
+                                    <div class="t-c">
+                                        <p class="t-c-name">Осталось мест</p>
+                                        <p class="t-c-opis">${event.available_seats} из ${event.total_seats}</p>
+                                    </div>
+                                    <div class="t-c">
+                                        <p class="t-c-name">Стоимость</p>
+                                        <p class="t-c-opis">${event.price}₽</p>
+                                    </div>
+                                </div>
+                                <button class="mvm-btn" ${isAdmin ? 'disabled style="opacity: 0.5; cursor: not-allowed; background-color: #aaa;"' : 'onclick="goToBuyTicket()"'}>Хочу пойти</button>
+                            </div>
+                        </div>
+                    `;
+
+                    let modal = document.getElementById('modal');
+                    modal.classList.remove('closing');
+                    modal.classList.add('show');
+                }
+                
+
+                function closeModal() {
+                    let modal = document.getElementById('modal');
+                    modal.classList.add('closing');
+                    setTimeout(() => {
+                        modal.classList.remove('show', 'closing');
+                        document.body.style.paddingRight = '';
+                        document.body.classList.remove('modal-open');
+                    }, 300);
+                }
+
+                function goToBuyTicket() {
+                    window.location.href = `/buy-ticket?event=${currentEventCode}`;
+                }
+
+                window.onclick = function(event) {
+                    let modal = document.getElementById('modal');
+                    if (event.target == modal) {
+                        closeModal();
+                    }
+                }
+
+                loadEvents();
+
+                // ==================== СЛАЙДЕР ФОНА ====================
+                (function() {
+                    const backgroundImages = [
+                        '/img/Group 91.png',
+                        '/img/Group 92.png',
+                        '/img/Group 93.png',
+                        '/img/Group 94.png',
+                        '/img/Group 95.png'
+                    ];
+
+                    let currentIndex = 0;
+                    const bannerElement = document.querySelector('.banner-home');
+
+                    function changeBackground() {
+                        currentIndex = (currentIndex + 1) % backgroundImages.length;
+                        const img = new Image();
+                        img.onload = function() {
+                            bannerElement.style.transition = 'background-image 1s ease-in-out';
+                            bannerElement.style.backgroundImage = `url('${backgroundImages[currentIndex]}')`;
+                        };
+                        img.src = backgroundImages[currentIndex];
+                    }
+
+                    if (bannerElement && backgroundImages.length > 1) {
+                        bannerElement.style.backgroundImage = `url('${backgroundImages[0]}')`;
+                        bannerElement.style.backgroundRepeat = 'no-repeat';
+                        bannerElement.style.backgroundPosition = 'center';
+                        bannerElement.style.backgroundSize = 'cover';
+                        setInterval(changeBackground, 3000);
+                    }
+                })();
+// ==================== ФОРМА СОТРУДНИЧЕСТВА ====================
+// Блокировка ввода букв в поле "Стоимость билета"
+const ticketPriceInput = document.getElementById('ticketPrice');
+if (ticketPriceInput) {
+    ticketPriceInput.addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^\d]/g, '');
+    });
+}
+
+
+function validateFio(fio) {
+    const parts = fio.trim().split(/\s+/);
+    if (parts.length < 3) return false;
+    for (const part of parts) {
+        if (part.length < 2) return false;
+    }
+    return true;
+}
+
+const sotrudForm = document.getElementById('sotrudForm');
+if (sotrudForm) {
+    async function submitForm() {
+        // Собираем данные формы
+        const formData = new FormData(sotrudForm);
+        const data = Object.fromEntries(formData.entries());
+        
+        // Проверка на незаполненные обязательные поля (ВСЕ ПОЛЯ)
+        if (!data.fio || !data.fio.trim()) {
+            showToastRight('Заполните все поля', 'error');
+            return;
+        }
+        if (!data.email || !data.email.trim()) {
+            showToastRight('Заполните все поля', 'error');
+            return;
+        }
+        if (!data.space) {
+            showToastRight('Заполните все поля', 'error');
+            return;
+        }
+        if (!data.event_type || !data.event_type.trim()) {
+            showToastRight('Заполните все поля', 'error');
+            return;
+        }
+        if (!data.duration || !data.duration.trim()) {
+            showToastRight('Заполните все поля', 'error');
+            return;
+        }
+        if (!data.ticket_price || !data.ticket_price.trim()) {
+            showToastRight('Заполните все поля', 'error');
+            return;
+        }
+        if (!data.description || !data.description.trim()) {
+            showToastRight('Заполните все поля', 'error');
+            return;
+        }
+        
+        // Валидация ФИО
+        if (!validateFio(data.fio)) {
+            showToastRight('ФИО должно содержать минимум 3 слова, каждое не менее 2 символов', 'error');
+            return;
+        }
+        
+        // Валидация email
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+            showToastRight('Введите корректный email', 'error');
+            return;
+        }
+        
+        // Валидация стоимости (только цифры)
+        if (!/^\d+$/.test(data.ticket_price)) {
+            showToastRight('Стоимость должна содержать только цифры', 'error');
+            return;
+        }
+        
+        const submitBtn = sotrudForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Отправка...';
+        
+        try {
+            const res = await fetch('/api/sotrud/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            
+            if (result.success) {
+                showToastRight(result.message, 'success');
+                sotrudForm.reset();
+            } else {
+                showToastRight(result.message || 'Ошибка отправки', 'error');
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            showToastRight('Произошла ошибка. Попробуйте позже.', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
+    }
+    
+    // Отправка по клику на кнопку
+    sotrudForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        submitForm();
+    });
+    
+    // Отправка по Enter
+    const formInputs = sotrudForm.querySelectorAll('input, select, textarea');
+    formInputs.forEach(input => {
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                submitForm();
+            }
+        });
+    });
+}
+
+
+            </script>
+</body>
+
+</html>

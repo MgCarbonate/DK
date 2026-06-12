@@ -1,0 +1,508 @@
+<header>
+    <div class="head">
+        <div class="nav-left">
+             <div class="burger-menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+            <div class="logo">
+                <a href="/">
+                    <img src="/img/logo.svg" alt="Логотип">
+                </a>
+            </div>
+            <div class="nav">
+    <a href="/events" class="<%= currentPage === 'events' && currentPage !== 'buy-ticket' ? 'active' : '' %>">
+        <p>Мероприятия</p>
+    </a>
+    <a href="/about" class="<%= currentPage === 'about' ? 'active' : '' %>">
+        <p>О нас</p>
+    </a>
+    <a href="/sotrud" class="<%= currentPage === 'sotrud' ? 'active' : '' %>">
+        <p>Сотрудничество</p>
+    </a>
+                <% if (user && user.is_admin) { %>
+                    <a href="/admin/statistics" class="<%= currentPage === 'admin' ? 'active' : '' %>">
+                        <p>Админпанель</p>
+                    </a>
+                    <% } %>
+                        <% if (user && !user.is_admin) { %>
+                            <a href="/profile" class="<%= currentPage === 'profile' ? 'active' : '' %>">
+                                <p>Личный кабинет</p>
+                            </a>
+                            <% } %>
+                                <% if (!user) { %>
+                                    <a href="/login" class="<%= currentPage === 'login' ? 'active' : '' %>">
+                                        <p>Личный кабинет</p>
+                                    </a>
+                                    <% } %>
+            </div>
+        </div>
+        <div class="nav-right">
+            <% if (user && !user.is_admin) { %>
+                <div class="notifications-wrapper">
+                    <div class="notifications-icon" id="notificationsIcon">
+                        <img src="/img/not.svg" alt="Уведомления">
+                        <span class="notifications-badge" id="notificationsBadge" style="display: none;">0</span>
+                    </div>
+                    <div class="notifications-dropdown" id="notificationsDropdown" style="display: none;">
+                        <div class="notifications-header">
+                            <span>Уведомления</span>
+                            <button id="markAllReadBtn" class="mark-read-btn">Прочитать все</button>
+                        </div>
+                        <div class="notifications-list" id="notificationsList">
+                            <div class="notifications-empty">Нет уведомлений</div>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
+                    <% if (user && user.is_admin) { %>
+                        <div>
+                            <a href="/logout" style="color: #80191B; font-weight: 600; text-decoration: none;">Выйти</a>
+                        </div>
+                        <% } %>
+        </div>
+    </div>
+</header>
+
+<style>
+    /* Точка под активным пунктом меню */
+    .nav a.active p {
+        color: #80191B;
+        position: relative;
+    }
+
+    .nav a.active p::before {
+        content: '';
+        position: absolute;
+        bottom: -8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 6px;
+        height: 6px;
+        background-color: #80191B;
+        border-radius: 50%;
+    }
+</style>
+
+<script>
+    // Уведомления
+    let notifications = [];
+    let notificationsDropdown = document.getElementById('notificationsDropdown');
+    let notificationsIcon = document.getElementById('notificationsIcon');
+    let notificationsList = document.getElementById('notificationsList');
+    let notificationsBadge = document.getElementById('notificationsBadge');
+
+    function formatTime(dateStr) {
+        const date = new Date(dateStr);
+        return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    }
+
+    async function updateNotificationBadge() {
+    const badge = document.getElementById('notificationsBadge');
+    if (!badge) return; // Добавьте эту проверку в начало функции
+    
+    try {
+        const res = await fetch('/api/notifications/unread-count');
+        const data = await res.json();
+        if (data.success) {
+            if (data.unreadCount > 0) {
+                badge.textContent = data.unreadCount > 9 ? '9+' : data.unreadCount;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка обновления счетчика:', error);
+    }
+}
+
+    async function loadNotifications() {
+        try {
+            const res = await fetch('/api/notifications');
+            const data = await res.json();
+            if (data.success) {
+                notifications = data.notifications;
+                renderNotifications();
+                if (data.unreadCount > 0) {
+                    notificationsBadge.textContent = data.unreadCount > 9 ? '9+' : data.unreadCount;
+                    notificationsBadge.style.display = 'flex';
+                } else {
+                    notificationsBadge.style.display = 'none';
+                }
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки уведомлений:', error);
+        }
+    }
+
+    function renderNotifications() {
+        if (!notificationsList) return;
+
+        if (notifications.length === 0) {
+            notificationsList.innerHTML = '<div class="notifications-empty">Нет уведомлений</div>';
+            return;
+        }
+
+        notificationsList.innerHTML = notifications.map(notif => `
+            <div class="notification-item ${notif.is_read ? '' : 'unread'}" data-id="${notif.notification_code}">
+                <span class="delete-notification" onclick="deleteNotification(${notif.notification_code}, event)">✕</span>
+                <div class="notification-title">${escapeHtml(notif.title)}</div>
+                <div class="notification-description">${escapeHtml(notif.description)}</div>
+                <div class="notification-time">${formatTime(notif.created_at)}</div>
+            </div>
+        `).join('');
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function (m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    async function markAllAsRead() {
+        try {
+            const res = await fetch('/api/notifications/mark-read', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                loadNotifications();
+                updateNotificationBadge();
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+        }
+    }
+
+    async function deleteNotification(id, event) {
+        event.stopPropagation();
+        try {
+            const res = await fetch(`/api/notifications/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                loadNotifications();
+                updateNotificationBadge();
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+        }
+    }
+
+    // Открытие/закрытие окна уведомлений
+    if (notificationsIcon) {
+        notificationsIcon.onclick = function (e) {
+            e.stopPropagation();
+            if (notificationsDropdown.style.display === 'none' || notificationsDropdown.style.display === '') {
+                notificationsDropdown.style.display = 'block';
+                document.body.classList.add('notifications-open');
+                loadNotifications();
+            } else {
+                notificationsDropdown.style.display = 'none';
+                document.body.classList.remove('notifications-open');
+            }
+        };
+    }
+
+    // Закрытие при клике вне окна
+    document.addEventListener('click', function () {
+        if (notificationsDropdown && notificationsDropdown.style.display === 'block') {
+            notificationsDropdown.style.display = 'none';
+            document.body.classList.remove('notifications-open');
+        }
+    });
+
+    document.getElementById('markAllReadBtn')?.addEventListener('click', markAllAsRead);
+
+    if (notificationsDropdown) {
+        notificationsDropdown.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+    }
+
+    // Загружаем счетчик уведомлений при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function () {
+        updateNotificationBadge();
+    });
+
+    // Обновляем каждые 30 секунд
+    setInterval(updateNotificationBadge, 30000);
+</script>
+
+<!-- Летающая кнопка корзины (только для обычных пользователей, не админов) -->
+<% if (user && !user.is_admin) { %>
+    <a href="/buy-ticket" class="cart-fly-btn" id="cartFlyBtn">
+        <div class="cart-fly-icon">
+            🛒
+            <span class="cart-fly-count" id="cartFlyCount">0</span>
+        </div>
+    </a>
+<% } %>
+
+<style>
+    .cart-fly-btn {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        z-index: 999;
+        text-decoration: none;
+    }
+
+    .cart-fly-icon {
+        background-color: #80191B;
+        color: #DAA655;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        position: relative;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .cart-fly-icon:hover {
+        transform: scale(1.1);
+        background-color: #DAA655;
+        color: #80191B;
+    }
+
+    .cart-fly-count {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background-color: #DAA655;
+        color: #80191B;
+        font-size: 12px;
+        font-weight: 700;
+        min-width: 20px;
+        height: 20px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+    }
+</style>
+
+<script>
+    function updateCartFlyCount() {
+        const saved = sessionStorage.getItem('cart');
+        if (saved) {
+            const cart = JSON.parse(saved);
+            const totalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const countSpan = document.getElementById('cartFlyCount');
+            if (countSpan) {
+                countSpan.textContent = totalCount;
+                countSpan.style.display = totalCount > 0 ? 'flex' : 'none';
+            }
+        } else {
+            const countSpan = document.getElementById('cartFlyCount');
+            if (countSpan) countSpan.style.display = 'none';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        updateCartFlyCount();
+
+        window.addEventListener('storage', function (e) {
+            if (e.key === 'cart') {
+                updateCartFlyCount();
+            }
+        });
+
+        // Обновляем счетчик каждые 500 мс (на случай если sessionStorage меняется из другого окна)
+        setInterval(updateCartFlyCount, 500);
+    });
+
+    window.updateCartFlyCount = updateCartFlyCount;
+
+   
+    function formatTime(dateStr) {
+        const date = new Date(dateStr);
+        return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    }
+
+    async function updateNotificationBadge() {
+        const badge = document.getElementById('notificationsBadge');
+        if (!badge) return;
+        
+        try {
+            const res = await fetch('/api/notifications/unread-count');
+            const data = await res.json();
+            if (data.success) {
+                if (data.unreadCount > 0) {
+                    badge.textContent = data.unreadCount > 9 ? '9+' : data.unreadCount;
+                    badge.style.display = 'flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        } catch (error) {
+            console.error('Ошибка обновления счетчика:', error);
+        }
+    }
+
+    async function loadNotifications() {
+        try {
+            const res = await fetch('/api/notifications');
+            const data = await res.json();
+            if (data.success) {
+                notifications = data.notifications;
+                renderNotifications();
+                if (data.unreadCount > 0) {
+                    notificationsBadge.textContent = data.unreadCount > 9 ? '9+' : data.unreadCount;
+                    notificationsBadge.style.display = 'flex';
+                } else {
+                    notificationsBadge.style.display = 'none';
+                }
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки уведомлений:', error);
+        }
+    }
+
+    function renderNotifications() {
+        if (!notificationsList) return;
+
+        if (notifications.length === 0) {
+            notificationsList.innerHTML = '<div class="notifications-empty">Нет уведомлений</div>';
+            return;
+        }
+
+        notificationsList.innerHTML = notifications.map(notif => `
+            <div class="notification-item ${notif.is_read ? '' : 'unread'}" data-id="${notif.notification_code}">
+                <span class="delete-notification" onclick="deleteNotification(${notif.notification_code}, event)">✕</span>
+                <div class="notification-title">${escapeHtml(notif.title)}</div>
+                <div class="notification-description">${escapeHtml(notif.description)}</div>
+                <div class="notification-time">${formatTime(notif.created_at)}</div>
+            </div>
+        `).join('');
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function (m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    async function markAllAsRead() {
+        try {
+            const res = await fetch('/api/notifications/mark-read', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                loadNotifications();
+                updateNotificationBadge();
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+        }
+    }
+
+    async function deleteNotification(id, event) {
+        event.stopPropagation();
+        try {
+            const res = await fetch(`/api/notifications/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                loadNotifications();
+                updateNotificationBadge();
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+        }
+    }
+
+    // Открытие/закрытие окна уведомлений
+    if (notificationsIcon) {
+        notificationsIcon.onclick = function (e) {
+            e.stopPropagation();
+            if (notificationsDropdown.style.display === 'none' || notificationsDropdown.style.display === '') {
+                notificationsDropdown.style.display = 'block';
+                document.body.classList.add('notifications-open');
+                loadNotifications();
+            } else {
+                notificationsDropdown.style.display = 'none';
+                document.body.classList.remove('notifications-open');
+            }
+        };
+    }
+
+    // Закрытие при клике вне окна
+    document.addEventListener('click', function () {
+        if (notificationsDropdown && notificationsDropdown.style.display === 'block') {
+            notificationsDropdown.style.display = 'none';
+            document.body.classList.remove('notifications-open');
+        }
+    });
+
+    document.getElementById('markAllReadBtn')?.addEventListener('click', markAllAsRead);
+
+    if (notificationsDropdown) {
+        notificationsDropdown.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+    }
+
+    // Загружаем счетчик уведомлений при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function () {
+        updateNotificationBadge();
+        
+        // ========== БУРГЕР-МЕНЮ (исправленная версия) ==========
+        const burgerMenu = document.querySelector('.burger-menu');
+        const navMenu = document.querySelector('.nav');
+        
+        if (burgerMenu && navMenu) {
+            // Функция открытия/закрытия меню
+            function toggleMenu() {
+                burgerMenu.classList.toggle('active');
+                navMenu.classList.toggle('active');
+                
+                if (navMenu.classList.contains('active')) {
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    document.body.style.overflow = '';
+                }
+            }
+            
+            // Клик по бургеру
+            burgerMenu.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleMenu();
+            });
+            
+            // Закрытие при клике на ссылку
+            document.querySelectorAll('.nav a').forEach(link => {
+                link.addEventListener('click', () => {
+                    burgerMenu.classList.remove('active');
+                    navMenu.classList.remove('active');
+                    document.body.style.overflow = '';
+                });
+            });
+            
+            // Закрытие при клике вне меню
+            document.addEventListener('click', function(e) {
+                if (navMenu.classList.contains('active')) {
+                    if (!navMenu.contains(e.target) && !burgerMenu.contains(e.target)) {
+                        burgerMenu.classList.remove('active');
+                        navMenu.classList.remove('active');
+                        document.body.style.overflow = '';
+                    }
+                }
+            });
+        }
+    });
+
+    // Обновляем каждые 30 секунд
+    setInterval(updateNotificationBadge, 30000);
+</script>

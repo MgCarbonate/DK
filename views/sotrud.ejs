@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сотрудничество</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" href="/img/logo-icon.jpg">
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+        <main>
+            <div class="sotrud-hello-block">
+                <div class="s-h-b-info">
+                    <div class="s-h-b-left">
+                        <div class="s-h-b-l-top">
+                            <div class="s-h-b-l-t-l">
+                                <img src="/img/sotrud-logo.svg" alt="">
+                                <p>это пространство, которым мы рады делиться с классными ребятами, разделяющими наши
+                                    ценности!
+                                </p>
+                            </div>
+                            <div class="s-h-b-l-t-r">
+                                <img src="/img/sotrud-sparkle.svg" alt="">
+                            </div>
+                        </div>
+                        <img src="/img/sotrud-sparkle.svg" alt="">
+                    </div>
+                    <div class="s-h-b-right">
+                        <p class="s-h-b-right-p">Какие мероприятия мы принимаем с теплотой: мастер-классы, лекции,
+                            встречи клубов по интересам,
+                            локальные торжества и корпоративные события. А если вы забронируете ДК полностью, комфортно
+                            поместим до 60 человек.</p>
+                        <p>Чем готовы помочь: наши феечки создадут декор и оформят фотозону — на их счету крупные
+                            городские
+                            события и фестивали.</p>
+                        <img src="/img/sotrud-lines.svg" alt="">
+                    </div>
+                </div>
+            </div>
+
+            <div class="spaces-block">
+                <div class="sp-bl-zag">
+                    <hr>
+                    <p>Пространства для брони</p>
+                    <hr>
+                </div>
+                <div class="sp-bl-sps">
+                    <div class="sp-bl-sps-img">
+                        <img src="/img/space-1.png" alt="">
+                        <img src="/img/space-2.png" alt="">
+                        <img src="/img/space-3.png" alt="">
+                    </div>
+                </div>
+            </div>
+
+            <div class="sotrud-block">
+                <div class="sotrud-info">
+                    <div class="sotrud-top">
+                        <div class="sotrud-top-left">
+                            <p class="sotrud-name">Давайте сотрудничать!</p>
+                            <p class="sotrud-opis">Какие мероприятия мы принимаем с теплотой: мастер-классы, лекции,
+                                встречи
+                                клубов по интересам, локальные торжества и корпоративные события. </p>
+                        </div>
+                        <div class="sotrud-top-right">
+                            <button>Пространства для брони</button>
+                        </div>
+                    </div>
+                    <form class="sotrud-form" id="sotrudForm" novalidate>
+                        <div class="sotrud-form-blocks">
+                            <input type="text" name="fio" placeholder="ФИО" class="sotrud-form-one" required>
+                            <input type="email" name="email" placeholder="Почта" class="sotrud-form-one" required>
+                            <select name="space" class="sotrud-form-two" required>
+                                <option value="">Пространство</option>
+                                <option value="Синий зал">Синий зал</option>
+                                <option value="Большой зал">Большой зал. Оба формата</option>
+                                <option value="Большой зал. Лекторий">Формат лекторий</option>
+                                <option value="Большой зал. Мастер-класс">Формат мастер-класс</option>
+                            </select>
+                        </div>
+                        <div class="sotrud-form-blocks">
+                            <input type="text" name="event_type" placeholder="Вид мероприятия" class="sotrud-form-one">
+                            <input type="text" name="duration" placeholder="Длительность" class="sotrud-form-three">
+                            <input type="text" name="ticket_price" id="ticketPrice" placeholder="Стоимость билета*"
+                                class="sotrud-form-four" inputmode="numeric" pattern="\d*">
+                        </div>
+                        <div class="sotrud-form-area">
+                            <textarea name="description" class="sotrud-form-five"
+                                placeholder="Описание и дополнительная информация"></textarea>
+                            <p class="ps">*Может быть скорректирована при согласовании</p>
+                        </div>
+                        <div class="sotrud-form-btn">
+                            <button type="submit" class="sotrud-form-btn-submit">Отправить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+
+        <%- include('partials/footer') %>
+
+            <script>
+                // Якорь на кнопку "Пространства для брони"
+                document.querySelector('.sotrud-top-right button')?.addEventListener('click', () => {
+                    document.querySelector('.spaces-block')?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                });
+
+                function showToastRight(message, type) {
+                    const existingToast = document.querySelector('.toast-notification');
+                    if (existingToast) existingToast.remove();
+
+                    const toast = document.createElement('div');
+                    toast.className = `toast-notification ${type}`;
+                    toast.textContent = message;
+                    document.body.appendChild(toast);
+
+                    setTimeout(() => {
+                        toast.classList.add('fade-out');
+                        setTimeout(() => toast.remove(), 300);
+                    }, 3000);
+                }
+// ==================== ФОРМА СОТРУДНИЧЕСТВА ====================
+// Блокировка ввода букв в поле "Стоимость билета"
+const ticketPriceInput = document.getElementById('ticketPrice');
+if (ticketPriceInput) {
+    ticketPriceInput.addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^\d]/g, '');
+    });
+}
+
+function validateFio(fio) {
+    const parts = fio.trim().split(/\s+/);
+    if (parts.length < 3) return false;
+    for (const part of parts) {
+        if (part.length < 2) return false;
+    }
+    return true;
+}
+
+const sotrudForm = document.getElementById('sotrudForm');
+if (sotrudForm) {
+    async function submitForm() {
+        // Собираем данные формы
+        const formData = new FormData(sotrudForm);
+        const data = Object.fromEntries(formData.entries());
+        
+        // Проверка на незаполненные обязательные поля (ВСЕ ПОЛЯ)
+        if (!data.fio || !data.fio.trim()) {
+            showToastRight('Заполните все поля', 'error');
+            return;
+        }
+        if (!data.email || !data.email.trim()) {
+            showToastRight('Заполните все поля', 'error');
+            return;
+        }
+        if (!data.space) {
+            showToastRight('Заполните все поля', 'error');
+            return;
+        }
+        if (!data.event_type || !data.event_type.trim()) {
+            showToastRight('Заполните все поля', 'error');
+            return;
+        }
+        if (!data.duration || !data.duration.trim()) {
+            showToastRight('Заполните все поля', 'error');
+            return;
+        }
+        if (!data.ticket_price || !data.ticket_price.trim()) {
+            showToastRight('Заполните все поля', 'error');
+            return;
+        }
+        if (!data.description || !data.description.trim()) {
+            showToastRight('Заполните все поля', 'error');
+            return;
+        }
+        
+        // Валидация ФИО
+        if (!validateFio(data.fio)) {
+            showToastRight('ФИО должно содержать минимум 3 слова, каждое не менее 2 символов', 'error');
+            return;
+        }
+        
+        // Валидация email
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+            showToastRight('Введите корректный email', 'error');
+            return;
+        }
+        
+        // Валидация стоимости (только цифры)
+        if (!/^\d+$/.test(data.ticket_price)) {
+            showToastRight('Стоимость должна содержать только цифры', 'error');
+            return;
+        }
+        
+        const submitBtn = sotrudForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Отправка...';
+        
+        try {
+            const res = await fetch('/api/sotrud/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            
+            if (result.success) {
+                showToastRight(result.message, 'success');
+                sotrudForm.reset();
+            } else {
+                showToastRight(result.message || 'Ошибка отправки', 'error');
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            showToastRight('Произошла ошибка. Попробуйте позже.', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
+    }
+    
+    // Отправка по клику на кнопку
+    sotrudForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        submitForm();
+    });
+    
+    // Отправка по Enter
+    const formInputs = sotrudForm.querySelectorAll('input, select, textarea');
+    formInputs.forEach(input => {
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                submitForm();
+            }
+        });
+    });
+}
+
+            </script>
+</body>
+
+</html>
+

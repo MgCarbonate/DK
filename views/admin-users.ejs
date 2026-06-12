@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель - Пользователи</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" href="/img/logo-icon.jpg">
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+        <main>
+            <div class="adminstat">
+                <div class="admin-left">
+    <div class="admin-menu-item <%= adminPage === 'statistics' ? 'active' : '' %>" id="navStatistics">
+        <p>Статистика</p>
+    </div>
+    <div class="admin-menu-item <%= adminPage === 'users' ? 'active' : '' %>" id="navUsers">
+        <p>Пользователи</p>
+    </div>
+    <div class="admin-menu-item">
+        <p>Мероприятия</p>
+    </div>
+    <div class="admin-submenu">
+        <p class="admin-m-txt <%= adminPage === 'events' ? 'admin-m-txt-active' : '' %>" id="navEventsManage">Управление</p>
+        <p class="admin-m-txt <%= adminPage === 'events-stats' ? 'admin-m-txt-active' : '' %>" id="navEventsStats">Статистика</p>
+    </div>
+    <div class="admin-menu-item <%= adminPage === 'sotrud' ? 'active' : '' %>" id="navSotrud">
+        <p>Сотрудничество</p>
+    </div>
+    <div class="admin-menu-item <%= adminPage === 'about' ? 'active' : '' %>" id="navAbout">
+    <p>О нас</p>
+</div>
+</div>
+                <div class="admin-right">
+                    <div class="last-acts">
+                        <p>Управление пользователями</p>
+                        <input type="text" id="searchUsers" placeholder="Поиск по ФИО или email...">
+                        <div class="users">
+                            <div class="users-header">
+                                <div>ФИО</div>
+                                <div>Почта</div>
+                                <div></div>
+                            </div>
+                            <div id="usersList"></div>
+                        </div>
+                        <div class="pagination" id="pagination" style="display: none;">
+                            <button class="page-btn" id="prevPage">&laquo; Назад</button>
+                            <span class="page-info">Страница <span id="currentPage">1</span> из <span id="totalPages">1</span></span>
+                            <button class="page-btn" id="nextPage">Вперед &raquo;</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Модальные окна -->
+        <div id="editEmailModal" class="modal">
+            <div class="modal-content confirm-modal" style="max-width: 400px;">
+                <span class="close" onclick="closeEditEmailModal()">&times;</span>
+                <h3 class="cards-title">Изменение email</h3>
+                <p style="margin-bottom: 15px;">Пользователь: <strong id="editUserName"></strong></p>
+                <input type="email" id="newEmailInput" class="profile-input" placeholder="Новый email" style="margin-bottom: 20px;">
+                <div id="editEmailMessage" class="modal-message" style="display: none;"></div>
+                <div style="display: flex; gap: 15px;">
+                    <button onclick="confirmEmailChange()" class="profile-save-btn" style="background-color: #80191B;">Сохранить</button>
+                    <button onclick="closeEditEmailModal()" class="profile-save-btn" style="background-color: #DAA655; color: #80191B;">Отмена</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="verifyCodeModal" class="modal">
+            <div class="modal-content confirm-modal" style="max-width: 400px;">
+                <span class="close" onclick="closeVerifyCodeModal()">&times;</span>
+                <h3 class="cards-title">Подтверждение смены email</h3>
+                <p style="margin-bottom: 10px;">Код отправлен на новый email</p>
+                <p style="margin-bottom: 15px; font-size: 14px; color: #666;">Пользователь: <strong id="verifyUserName"></strong></p>
+                <input type="text" id="verifyCodeInput" class="profile-input" placeholder="Введите код из письма" maxlength="6" style="margin-bottom: 20px;">
+                <div id="verifyCodeMessage" class="modal-message" style="display: none;"></div>
+                <div style="display: flex; gap: 15px;">
+                    <button onclick="confirmEmailChangeWithCode()" class="profile-save-btn" style="background-color: #80191B;">Подтвердить</button>
+                    <button onclick="closeVerifyCodeModal()" class="profile-save-btn" style="background-color: #DAA655; color: #80191B;">Отмена</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="deleteUserModal" class="modal">
+            <div class="modal-content confirm-modal" style="max-width: 400px;">
+                <span class="close" onclick="closeDeleteUserModal()">&times;</span>
+                <h3 class="cards-title">Удаление пользователя</h3>
+                <p style="margin-bottom: 15px;">Пользователь: <strong id="deleteUserName"></strong></p>
+                <p style="margin-bottom: 20px; color: #80191B;">Выберите тип удаления:</p>
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                    <button onclick="deleteUser('soft')" class="profile-save-btn" style="background-color: #DAA655; color: #80191B;">Единоразовое</button>
+                    <button onclick="deleteUser('permanent')" class="profile-save-btn" style="background-color: #80191B;">Перманентное</button>
+                </div>
+                <button onclick="closeDeleteUserModal()" class="resend-code-btn" style="margin-top: 0;">Отмена</button>
+                <div id="deleteUserMessage" class="modal-message" style="display: none;"></div>
+            </div>
+        </div>
+
+        <script>
+            let allUsers = [];
+            let filteredUsers = [];
+            let currentUserId = null;
+            let currentUserName = null;
+            let currentPage = 1;
+            let itemsPerPage = 10;
+            let searchQuery = '';
+
+            const usersList = document.getElementById('usersList');
+            const searchInput = document.getElementById('searchUsers');
+            const paginationDiv = document.getElementById('pagination');
+            const prevBtn = document.getElementById('prevPage');
+            const nextBtn = document.getElementById('nextPage');
+            const currentPageSpan = document.getElementById('currentPage');
+            const totalPagesSpan = document.getElementById('totalPages');
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/[&<>]/g, function (m) {
+                    if (m === '&') return '&amp;';
+                    if (m === '<') return '&lt;';
+                    if (m === '>') return '&gt;';
+                    return m;
+                });
+            }
+
+            // Функция для сравнения строк с учетом русских букв (алфавитный порядок)
+            function compareByFullName(a, b) {
+                return a.full_name.localeCompare(b.full_name, 'ru', { sensitivity: 'base' });
+            }
+
+            async function loadAllUsers() {
+                if (usersList) {
+                    usersList.innerHTML = '<div class="users-row" style="justify-content: center;">Загрузка...</div>';
+                }
+
+                try {
+                    const res = await fetch('/admin/api/users');
+                    const data = await res.json();
+
+                    if (data.success) {
+                        // СОРТИРУЕМ ПОЛЬЗОВАТЕЛЕЙ ПО АЛФАВИТУ (по ФИО)
+                        allUsers = data.users.sort(compareByFullName);
+                        applySearch();
+                    } else {
+                        usersList.innerHTML = '<div class="users-row" style="justify-content: center;">Ошибка загрузки</div>';
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки:', error);
+                    usersList.innerHTML = '<div class="users-row" style="justify-content: center;">Ошибка загрузки</div>';
+                }
+            }
+
+            function applySearch() {
+                if (!searchQuery || searchQuery.trim() === '') {
+                    filteredUsers = [...allUsers];
+                } else {
+                    const query = searchQuery.toLowerCase().trim();
+                    filteredUsers = allUsers.filter(user => {
+                        return user.full_name.toLowerCase().includes(query) || 
+                               user.email.toLowerCase().includes(query);
+                    });
+                    // После фильтрации ТАКЖЕ СОРТИРУЕМ результаты
+                    filteredUsers.sort(compareByFullName);
+                }
+                currentPage = 1;
+                renderPaginatedUsers();
+            }
+
+            function renderPaginatedUsers() {
+                const totalItems = filteredUsers.length;
+                const totalPagesCount = Math.ceil(totalItems / itemsPerPage);
+                const start = (currentPage - 1) * itemsPerPage;
+                const end = start + itemsPerPage;
+                const pageUsers = filteredUsers.slice(start, end);
+
+                if (totalPagesSpan) totalPagesSpan.textContent = totalPagesCount;
+                if (currentPageSpan) currentPageSpan.textContent = currentPage;
+
+                if (paginationDiv) {
+                    paginationDiv.style.display = totalPagesCount > 1 ? 'flex' : 'none';
+                }
+                if (prevBtn) prevBtn.disabled = currentPage <= 1;
+                if (nextBtn) nextBtn.disabled = currentPage >= totalPagesCount;
+
+                renderUsers(pageUsers);
+            }
+
+            function renderUsers(users) {
+                if (!usersList) return;
+                if (users.length === 0) {
+                    usersList.innerHTML = '<div class="users-rows" style=" display: flex; justify-content: center;  font-size: 28px; font-weight: 600; align-items:center; margin-top: 10px;">Пользователей не найдено</div>';
+                    return;
+                }
+                usersList.innerHTML = users.map(user => `
+                    <div class="users-row" data-user-code="${user.user_code}">
+                        <div>${escapeHtml(user.full_name)}</div>
+                        <div>${escapeHtml(user.email)}</div>
+                        <div class="actions">
+                            <button class="edit-users-btn" onclick="openEditEmailModal(${user.user_code}, '${escapeHtml(user.full_name)}', '${escapeHtml(user.email)}')">Изменить</button>
+                            <button class="delete-users-btn" onclick="openDeleteUserModal(${user.user_code}, '${escapeHtml(user.full_name)}')">Удалить</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            function goToPage(page) {
+                const totalPagesCount = Math.ceil(filteredUsers.length / itemsPerPage);
+                if (page < 1 || page > totalPagesCount) return;
+                currentPage = page;
+                renderPaginatedUsers();
+            }
+
+            let searchTimeout;
+            if (searchInput) {
+                searchInput.addEventListener('input', function (e) {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        searchQuery = e.target.value;
+                        applySearch();
+                    }, 300);
+                });
+            }
+
+            if (prevBtn) {
+                prevBtn.onclick = () => goToPage(currentPage - 1);
+            }
+            if (nextBtn) {
+                nextBtn.onclick = () => goToPage(currentPage + 1);
+            }
+
+            // Функции модальных окон
+            function openEditEmailModal(userCode, userName, userEmail) {
+                currentUserId = userCode;
+                currentUserName = userName;
+                document.getElementById('editUserName').textContent = userName;
+                document.getElementById('newEmailInput').value = userEmail;
+                document.getElementById('editEmailMessage').style.display = 'none';
+                openModal('editEmailModal');
+            }
+
+            function closeEditEmailModal() {
+                closeModal('editEmailModal');
+            }
+
+            async function confirmEmailChange() {
+                const newEmail = document.getElementById('newEmailInput').value;
+                if (!newEmail) {
+                    showModalMessage('editEmailMessage', 'Введите email', 'error');
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`/admin/api/users/${currentUserId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: newEmail })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        if (data.requiresVerification) {
+                            document.getElementById('verifyUserName').textContent = currentUserName;
+                            document.getElementById('verifyCodeInput').value = '';
+                            document.getElementById('verifyCodeMessage').style.display = 'none';
+                            closeEditEmailModal();
+                            openModal('verifyCodeModal');
+                        } else {
+                            showModalMessage('editEmailMessage', data.message, 'success');
+                            setTimeout(() => {
+                                closeEditEmailModal();
+                                loadAllUsers();
+                            }, 1500);
+                        }
+                    } else {
+                        showModalMessage('editEmailMessage', data.message || 'Ошибка', 'error');
+                    }
+                } catch (error) {
+                    showModalMessage('editEmailMessage', 'Ошибка сервера', 'error');
+                }
+            }
+
+            async function confirmEmailChangeWithCode() {
+                const code = document.getElementById('verifyCodeInput').value;
+                if (!code || code.length !== 6) {
+                    showModalMessage('verifyCodeMessage', 'Введите 6-значный код', 'error');
+                    return;
+                }
+
+                try {
+                    const res = await fetch('/admin/api/users/confirm-email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: code })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showModalMessage('verifyCodeMessage', data.message, 'success');
+                        setTimeout(() => {
+                            closeVerifyCodeModal();
+                            loadAllUsers();
+                        }, 1500);
+                    } else {
+                        showModalMessage('verifyCodeMessage', data.message || 'Ошибка', 'error');
+                    }
+                } catch (error) {
+                    showModalMessage('verifyCodeMessage', 'Ошибка сервера', 'error');
+                }
+            }
+
+            function closeVerifyCodeModal() {
+                closeModal('verifyCodeModal');
+            }
+
+            function openDeleteUserModal(userCode, userName) {
+                currentUserId = userCode;
+                currentUserName = userName;
+                document.getElementById('deleteUserName').textContent = userName;
+                document.getElementById('deleteUserMessage').style.display = 'none';
+                openModal('deleteUserModal');
+            }
+
+            function closeDeleteUserModal() {
+                closeModal('deleteUserModal');
+            }
+
+            async function deleteUser(type) {
+                try {
+                    const res = await fetch(`/admin/api/users/${currentUserId}`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type: type })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showModalMessage('deleteUserMessage', data.message, 'success');
+                        setTimeout(() => {
+                            closeDeleteUserModal();
+                            loadAllUsers();
+                        }, 1500);
+                    } else {
+                        showModalMessage('deleteUserMessage', data.message || 'Ошибка', 'error');
+                    }
+                } catch (error) {
+                    showModalMessage('deleteUserMessage', 'Ошибка сервера', 'error');
+                }
+            }
+
+            function showModalMessage(elementId, message, type) {
+                const msgDiv = document.getElementById(elementId);
+                msgDiv.textContent = message;
+                msgDiv.className = `modal-message ${type}`;
+                msgDiv.style.display = 'block';
+                setTimeout(() => {
+                    msgDiv.style.display = 'none';
+                }, 3000);
+            }
+
+            function openModal(modalId) {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.classList.remove('closing');
+                    modal.classList.add('show');
+                    document.body.classList.add('modal-open');
+                }
+            }
+
+            function closeModal(modalId) {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.classList.add('closing');
+                    setTimeout(() => {
+                        modal.classList.remove('show', 'closing');
+                        document.body.classList.remove('modal-open');
+                    }, 300);
+                }
+            }
+
+            document.getElementById('navStatistics').onclick = () => window.location.href = '/admin/statistics';
+            document.getElementById('navUsers').onclick = () => window.location.href = '/admin/users';
+            document.getElementById('navEventsManage').onclick = () => window.location.href = '/admin/events';
+            document.getElementById('navEventsStats').onclick = () => window.location.href = '/admin/events-stats';
+            document.getElementById('navSotrud').onclick = () => window.location.href = '/admin/sotrud';
+            document.getElementById('navAbout').onclick = () => window.location.href = '/admin/about';
+            loadAllUsers();
+        </script>
+
+        <script>
+    // Админ-панель бургер-меню (только для мобильных)
+    document.addEventListener('DOMContentLoaded', function() {
+        const adminLeft = document.querySelector('.admin-left');
+        if (adminLeft && window.innerWidth <= 768) {
+            // Добавляем класс для мобильной версии
+            adminLeft.classList.add('admin-left-mobile');
+            
+            // Добавляем бургер в админку, если его нет
+            const adminStat = document.querySelector('.adminstat');
+            if (adminStat && !document.querySelector('.admin-burger')) {
+                const burgerHtml = `
+                    <div class="admin-burger">
+                        <span class="admin-burger-title">Меню</span>
+                        <div class="admin-burger-btn">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                    <div class="admin-menu-overlay"></div>
+                `;
+                adminStat.insertAdjacentHTML('afterbegin', burgerHtml);
+                
+                const burgerBtn = document.querySelector('.admin-burger-btn');
+                const overlay = document.querySelector('.admin-menu-overlay');
+                
+                function toggleAdminMenu() {
+                    adminLeft.classList.toggle('active');
+                    burgerBtn.classList.toggle('active');
+                    overlay.classList.toggle('active');
+                    if (adminLeft.classList.contains('active')) {
+                        document.body.style.overflow = 'hidden';
+                    } else {
+                        document.body.style.overflow = '';
+                    }
+                }
+                
+                if (burgerBtn) {
+                    burgerBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        toggleAdminMenu();
+                    });
+                }
+                
+                if (overlay) {
+                    overlay.addEventListener('click', toggleAdminMenu);
+                }
+                
+                // Закрытие при клике на пункты меню
+                document.querySelectorAll('.admin-left .admin-menu-item, .admin-left .admin-m-txt').forEach(item => {
+                    item.addEventListener('click', () => {
+                        if (window.innerWidth <= 768) {
+                            toggleAdminMenu();
+                        }
+                    });
+                });
+            }
+        }
+    });
+
+    // Адаптация при изменении размера окна
+    window.addEventListener('resize', function() {
+        const nav = document.querySelector('.nav');
+        const burger = document.querySelector('.burger-menu');
+        const adminLeft = document.querySelector('.admin-left');
+        const overlay = document.querySelector('.admin-menu-overlay');
+        const burgerBtn = document.querySelector('.admin-burger-btn');
+        
+        if (window.innerWidth > 768) {
+            if (nav) nav.classList.remove('active');
+            if (burger) burger.classList.remove('active');
+            if (adminLeft) {
+                adminLeft.classList.remove('active');
+                // Убираем мобильные стили
+                adminLeft.style.left = '';
+                adminLeft.style.position = '';
+            }
+            if (overlay) overlay.classList.remove('active');
+            if (burgerBtn) burgerBtn.classList.remove('active');
+            document.body.style.overflow = '';
+        } else {
+            // Для мобильных - восстанавливаем
+            if (adminLeft) {
+                adminLeft.style.left = '';
+                adminLeft.style.position = 'fixed';
+            }
+        }
+    });
+</script>
+</body>
+
+</html>

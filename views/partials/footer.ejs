@@ -1,0 +1,50 @@
+<footer>
+    <div class="foot">
+        <div class="foot-l">
+            <a href="/">
+                <img src="/img/logo.svg" alt="Логотип">
+            </a>
+        </div>
+        <div class="foot-r">
+            <div class="foot-r-t">
+                <div class="foot-r-t-l">
+                    <div class="nav">
+    <a href="/events">
+        <p>Мероприятия</p>
+    </a>
+    <a href="/about">
+        <p>О нас</p>
+    </a>
+    <a href="/sotrud">
+        <p>Сотрудничество</p>
+    </a>
+                        <% if (user && user.is_admin) { %>
+                            <a href="/admin/statistics">
+                                <p>Админпанель</p>
+                            </a>
+                            <% } %>
+                                <% if (user && !user.is_admin) { %>
+                                    <a href="/profile">
+                                        <p>Личный кабинет</p>
+                                    </a>
+                                    <% } %>
+                                        <% if (!user) { %>
+                                            <a href="/login">
+                                                <p>Личный кабинет</p>
+                                            </a>
+                                            <% } %>
+                    </div>
+                </div>
+                <div class="foot-r-t-r">
+                    <a href="https://t.me/domkul_tur" class="tg"><img src="/img/tg.svg" alt="Telegram" ></a>
+                    <a href="https://www.instagram.com/domkul.tur/"><img src="/img/inst.svg" alt="Instagram"></a>
+                </div>
+            </div>
+            <div class="foot-r-b">
+                <p>Оренбург, Донецкая улица, 2/3</p>
+                <p>пн-вс 12:00-22:00</p>
+                <p>+7 (922) 809-66-22</p>
+            </div>
+        </div>
+    </div>
+</footer>

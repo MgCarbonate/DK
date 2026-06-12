@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель - Статистика мероприятий</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" href="/img/logo-icon.jpg">
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+        <main>
+            <div class="adminstat">
+                <div class="admin-left">
+                    <div class="admin-menu-item <%= adminPage === 'statistics' ? 'active' : '' %>" id="navStatistics">
+                        <p>Статистика</p>
+                    </div>
+                    <div class="admin-menu-item <%= adminPage === 'users' ? 'active' : '' %>" id="navUsers">
+                        <p>Пользователи</p>
+                    </div>
+                    <div class="admin-menu-item">
+                        <p>Мероприятия</p>
+                    </div>
+                    <div class="admin-submenu">
+                        <p class="admin-m-txt <%= adminPage === 'events' ? 'admin-m-txt-active' : '' %>" id="navEventsManage">Управление</p>
+                        <p class="admin-m-txt <%= adminPage === 'events-stats' ? 'admin-m-txt-active' : '' %>" id="navEventsStats">Статистика</p>
+                    </div>
+                    <div class="admin-menu-item <%= adminPage === 'sotrud' ? 'active' : '' %>" id="navSotrud">
+                        <p>Сотрудничество</p>
+                    </div>
+                    <div class="admin-menu-item <%= adminPage === 'about' ? 'active' : '' %>" id="navAbout">
+                        <p>О нас</p>
+                    </div>
+                </div>
+
+                <div class="admin-right">
+                    <div class="last-acts">
+                        <p>Статистика покупки билетов на мероприятия</p>
+                        <input type="text" id="searchOrders" placeholder="Поиск по названию мероприятия или ФИО...">
+                        
+                        <!-- Блок с итоговой суммой -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 10px; background: #f5f5f5; border-radius: 10px; margin-bottom: 15px;">
+                            <div style="font-size: 16px; font-weight: 600; color: #80191B;">Общая сумма:</div>
+                            <div style="font-size: 20px; font-weight: 800; color: #80191B;" id="totalSum">0 ₽</div>
+                        </div>
+                        
+                        <div class="orders">
+                            <div class="orders-header">
+                                <div>Наименование</div>
+                                <div>ФИО</div>
+                                <div>Кол-во</div>
+                                <div>Сумма</div>
+                                <div>Карта</div>
+                            </div>
+                            <div id="ordersContainer"></div>
+                        </div>
+                        <div class="pagination" id="pagination" style="display: none;">
+                            <button class="page-btn" id="prevPage">&laquo; Назад</button>
+                            <span class="page-info">Страница <span id="currentPage">1</span> из <span id="totalPages">1</span></span>
+                            <button class="page-btn" id="nextPage">Вперед &raquo;</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <script>
+            let allOrdersRaw = [];
+            let filteredOrders = [];
+            let currentPage = 1;
+            let itemsPerPage = 10;
+            let searchQuery = '';
+            let isLoading = false;
+
+            const ordersContainer = document.getElementById('ordersContainer');
+            const searchInput = document.getElementById('searchOrders');
+            const paginationDiv = document.getElementById('pagination');
+            const prevBtn = document.getElementById('prevPage');
+            const nextBtn = document.getElementById('nextPage');
+            const currentPageSpan = document.getElementById('currentPage');
+            const totalPagesSpan = document.getElementById('totalPages');
+            const totalSumSpan = document.getElementById('totalSum');
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/[&<>]/g, function (m) {
+                    if (m === '&') return '&amp;';
+                    if (m === '<') return '&lt;';
+                    if (m === '>') return '&gt;';
+                    return m;
+                });
+            }
+
+            function formatFullName(fullName) {
+                if (!fullName) return '—';
+                const parts = fullName.trim().split(/\s+/);
+                if (parts.length === 1) return parts[0];
+                if (parts.length === 2) return `${parts[0]} ${parts[1].charAt(0)}.`;
+                return `${parts[0]} ${parts[1].charAt(0)}.${parts[2].charAt(0)}.`;
+            }
+
+            function formatCard(cardNumber, expiryDate) {
+                if (!cardNumber) return '—';
+                const last4 = cardNumber.slice(-4);
+                if (expiryDate) {
+                    return `${last4} (${expiryDate})`;
+                }
+                return last4;
+            }
+
+            // Функция для подсчета общей суммы
+            function calculateTotalSum(orders) {
+                return orders.reduce((sum, order) => sum + (order.total_price || 0), 0);
+            }
+
+            // Обновление отображения общей суммы
+            function updateTotalSumDisplay() {
+                const total = calculateTotalSum(filteredOrders);
+                totalSumSpan.textContent = total.toLocaleString('ru-RU') + ' ₽';
+            }
+
+            // Функция для сравнения заказов: сначала по названию мероприятия, затем по ФИО
+            function compareOrders(a, b) {
+                const eventCompare = a.event_title.localeCompare(b.event_title, 'ru', { sensitivity: 'base' });
+                if (eventCompare !== 0) return eventCompare;
+                return a.user_name.localeCompare(b.user_name, 'ru', { sensitivity: 'base' });
+            }
+
+            async function loadOrders() {
+                if (isLoading) return;
+                isLoading = true;
+
+                if (ordersContainer) {
+                    ordersContainer.innerHTML = '<div class="orders-row" style="justify-content: center;">Загрузка...</div>';
+                }
+
+                try {
+                    const res = await fetch('/admin/api/orders/stats');
+                    const data = await res.json();
+
+                    if (data.success) {
+                        allOrdersRaw = data.orders.sort(compareOrders);
+                        applySearch();
+                    } else {
+                        ordersContainer.innerHTML = '<div class="orders-row" style="justify-content: center;">Ошибка загрузки данных</div>';
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки:', error);
+                    ordersContainer.innerHTML = '<div class="orders-row" style="justify-content: center;">Ошибка загрузки</div>';
+                } finally {
+                    isLoading = false;
+                }
+            }
+
+            function applySearch() {
+                if (!searchQuery || searchQuery.trim() === '') {
+                    filteredOrders = [...allOrdersRaw];
+                } else {
+                    const query = searchQuery.toLowerCase().trim();
+                    filteredOrders = allOrdersRaw.filter(order => {
+                        const eventMatch = order.event_title.toLowerCase().includes(query);
+                        const userMatch = order.user_name.toLowerCase().includes(query);
+                        return eventMatch || userMatch;
+                    });
+                    filteredOrders.sort(compareOrders);
+                }
+                currentPage = 1;
+                renderPaginatedOrders();
+                updateTotalSumDisplay(); // Обновляем сумму при поиске
+            }
+
+            function renderPaginatedOrders() {
+                const totalItems = filteredOrders.length;
+                const totalPagesCount = Math.ceil(totalItems / itemsPerPage);
+                const start = (currentPage - 1) * itemsPerPage;
+                const end = start + itemsPerPage;
+                const pageOrders = filteredOrders.slice(start, end);
+
+                if (totalPagesSpan) totalPagesSpan.textContent = totalPagesCount;
+                if (currentPageSpan) currentPageSpan.textContent = currentPage;
+
+                if (paginationDiv) {
+                    paginationDiv.style.display = totalPagesCount > 1 ? 'flex' : 'none';
+                }
+                if (prevBtn) prevBtn.disabled = currentPage <= 1;
+                if (nextBtn) nextBtn.disabled = currentPage >= totalPagesCount;
+
+                renderOrders(pageOrders);
+            }
+
+            function renderOrders(orders) {
+                if (!ordersContainer) return;
+
+                if (orders.length === 0) {
+                    ordersContainer.innerHTML = '<div class="no-data" style="justify-content: center; color: #80191B; display:flex; margin-top: 20px; font-size: 28px; font-weight: 600; align-self: center; ">Нет данных</div>';
+                    return;
+                }
+
+                ordersContainer.innerHTML = orders.map(order => `
+                    <div class="orders-row">
+                        <div>${escapeHtml(order.event_title)}</div>
+                        <div>${escapeHtml(formatFullName(order.user_name))}</div>
+                        <div>${order.quantity}</div>
+                        <div>${order.total_price}₽</div>
+                        <div>${formatCard(order.card_number, order.expiry_date)}</div>
+                    </div>
+                `).join('');
+            }
+
+            function goToPage(page) {
+                const totalPagesCount = Math.ceil(filteredOrders.length / itemsPerPage);
+                if (page < 1 || page > totalPagesCount) return;
+                currentPage = page;
+                renderPaginatedOrders();
+            }
+
+            let searchTimeout;
+            if (searchInput) {
+                searchInput.addEventListener('input', function (e) {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        searchQuery = e.target.value;
+                        applySearch();
+                    }, 300);
+                });
+            }
+
+            if (prevBtn) {
+                prevBtn.onclick = () => goToPage(currentPage - 1);
+            }
+            if (nextBtn) {
+                nextBtn.onclick = () => goToPage(currentPage + 1);
+            }
+
+            document.getElementById('navStatistics').onclick = () => window.location.href = '/admin/statistics';
+            document.getElementById('navUsers').onclick = () => window.location.href = '/admin/users';
+            document.getElementById('navEventsManage').onclick = () => window.location.href = '/admin/events';
+            document.getElementById('navEventsStats').onclick = () => window.location.href = '/admin/events-stats';
+            document.getElementById('navSotrud').onclick = () => window.location.href = '/admin/sotrud';
+            document.getElementById('navAbout').onclick = () => window.location.href = '/admin/about';
+            
+            loadOrders();
+        </script>
+
+        <script>
+            // Админ-панель бургер-меню (только для мобильных)
+            document.addEventListener('DOMContentLoaded', function() {
+                const adminLeft = document.querySelector('.admin-left');
+                if (adminLeft && window.innerWidth <= 768) {
+                    adminLeft.classList.add('admin-left-mobile');
+                    
+                    const adminStat = document.querySelector('.adminstat');
+                    if (adminStat && !document.querySelector('.admin-burger')) {
+                        const burgerHtml = `
+                            <div class="admin-burger">
+                                <span class="admin-burger-title">Меню</span>
+                                <div class="admin-burger-btn">
+                                    <span></span><span></span><span></span>
+                                </div>
+                            </div>
+                            <div class="admin-menu-overlay"></div>
+                        `;
+                        adminStat.insertAdjacentHTML('afterbegin', burgerHtml);
+                        
+                        const burgerBtn = document.querySelector('.admin-burger-btn');
+                        const overlay = document.querySelector('.admin-menu-overlay');
+                        
+                        function toggleAdminMenu() {
+                            adminLeft.classList.toggle('active');
+                            burgerBtn.classList.toggle('active');
+                            overlay.classList.toggle('active');
+                            if (adminLeft.classList.contains('active')) {
+                                document.body.style.overflow = 'hidden';
+                            } else {
+                                document.body.style.overflow = '';
+                            }
+                        }
+                        
+                        if (burgerBtn) {
+                            burgerBtn.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                toggleAdminMenu();
+                            });
+                        }
+                        
+                        if (overlay) {
+                            overlay.addEventListener('click', toggleAdminMenu);
+                        }
+                        
+                        document.querySelectorAll('.admin-left .admin-menu-item, .admin-left .admin-m-txt').forEach(item => {
+                            item.addEventListener('click', () => {
+                                if (window.innerWidth <= 768) {
+                                    toggleAdminMenu();
+                                }
+                            });
+                        });
+                    }
+                }
+            });
+
+            window.addEventListener('resize', function() {
+                const nav = document.querySelector('.nav');
+                const burger = document.querySelector('.burger-menu');
+                const adminLeft = document.querySelector('.admin-left');
+                const overlay = document.querySelector('.admin-menu-overlay');
+                const burgerBtn = document.querySelector('.admin-burger-btn');
+                
+                if (window.innerWidth > 768) {
+                    if (nav) nav.classList.remove('active');
+                    if (burger) burger.classList.remove('active');
+                    if (adminLeft) {
+                        adminLeft.classList.remove('active');
+                        adminLeft.style.left = '';
+                        adminLeft.style.position = '';
+                    }
+                    if (overlay) overlay.classList.remove('active');
+                    if (burgerBtn) burgerBtn.classList.remove('active');
+                    document.body.style.overflow = '';
+                } else {
+                    if (adminLeft) {
+                        adminLeft.style.left = '';
+                        adminLeft.style.position = 'fixed';
+                    }
+                }
+            });
+        </script>
+</body>
+
+</html>

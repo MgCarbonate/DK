@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный кабинет</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" href="/img/logo-icon.jpg">
+
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+    <main>
+        <div class="my-data">
+            <div class="my-data-block">
+                <p class="my-data-zag">Мои данные</p>
+                <div class="my-data-info">
+                    <div class="m-d-b-l">
+                        <div class="m-d-b-l-t">
+                            <p class="m-d-b-l-t-name">
+                                <%= user.full_name %>
+                            </p>
+                            <p class="m-d-b-l-t-razd">
+                                <%= user.email %>
+                            </p>
+                        </div>
+                        <div class="m-d-b-l-b">
+                            <button class="my-data-edit-btn" onclick="openEditModal()">Редактировать</button>
+                            <button class="my-data-cards-btn" onclick="openCardsModal()">Мои карты</button>
+                        </div>
+                        <img src="/img/profile-left.svg" alt="">
+                    </div>
+                    <div class="m-d-b-r">
+                        <button class="my-data-exit-btn" onclick="logout()">Выйти</button>
+                    </div>
+                </div>
+            </div>
+            <img class="pikuli" src="/img/profile-right.svg" alt="">
+        </div>
+
+        <!-- Заголовок с кнопкой архива -->
+        <div class="tickets-header">
+            <p class="my-tick-zag">Активные билеты</p>
+            <button class="archive-btn" onclick="openArchivedModal()">
+                Архив билетов
+            </button>
+        </div>
+
+        <!-- Горизонтальный список активных билетов -->
+        <div class="active-tickets-wrapper">
+            <div id="activeTicketsContainer" class="active-tickets-horizontal">
+                <!-- Активные билеты будут здесь -->
+            </div>
+        </div>
+
+        <div class="meropr-button" onclick="location.href='/events'">
+            <p>Купить билет</p>
+        </div>
+
+        <div class="my-tick-info">
+            <p>В списке отображаются <span>все билеты</span>, приобретенные за все время. <br>
+                <span>Возврат</span> билета возможен не менее чем за <span>24 часа</span> до начала мероприятия.
+                <br>
+                Билеты, с момента начала которых прошло более <span>2 часов</span>, автоматически перемещаются в
+                архив.
+            </p>
+        </div>
+    </main>
+
+    <%- include('partials/footer') %>
+
+    <!-- Модальное окно редактирования -->
+    <div id="editModal" class="modal">
+        <div class="modal-content profile-modal">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <div class="profile-tabs">
+                <button class="tab-btn active" onclick="switchTab('data')">ФИО</button>
+                <button class="tab-btn" onclick="switchTab('email')">Почта</button>
+                <button class="tab-btn" onclick="switchTab('password')">Пароль</button>
+            </div>
+            <div id="dataTab" class="tab-content active">
+                <form id="editNameForm" onsubmit="return false;">
+                    <input type="text" name="full_name" id="fullName" value="<%= user.full_name %>"
+                        class="profile-input" required
+                        onkeypress="return /[а-яА-ЯёЁa-zA-Z\s\-]/i.test(event.key)">
+                    <div id="editNameMessage" class="modal-message"></div>
+                    <button type="button" onclick="updateFullName()" class="profile-save-btn">Сохранить</button>
+                </form>
+            </div>
+            <div id="emailTab" class="tab-content">
+                <p style="color: #80191B; margin-bottom: 15px;">Текущий email: <strong>
+                        <%= user.email %>
+                    </strong></p>
+                <input type="email" id="newEmail" class="profile-input" placeholder="Новый email" required>
+                <div id="emailChangeMessage" class="modal-message"></div>
+                <button type="button" onclick="requestEmailChange()" class="profile-save-btn">Отправить код</button>
+            </div>
+            <div id="passwordTab" class="tab-content">
+                <form id="changePasswordForm" onsubmit="return false;">
+                    <input type="password" id="currentPassword" class="profile-input" placeholder="Текущий пароль" required>
+                    <input type="password" id="newPassword" class="profile-input" placeholder="Новый пароль" required>
+                    <input type="password" id="confirmPassword" class="profile-input" placeholder="Подтверждение пароля" required>
+                    <div id="passwordMessage" class="modal-message"></div>
+                    <button type="button" onclick="changePassword()" class="profile-save-btn">Изменить пароль</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно карт -->
+    <div id="cardsModal" class="modal">
+        <div class="modal-content profile-modal cards-modal">
+            <span class="close" onclick="closeCardsModal()">&times;</span>
+            <h3 class="cards-title">Мои карты</h3>
+            <div id="cardsList" class="cards-list"></div>
+            <div class="add-card-form">
+                <h4>Добавить новую карту</h4>
+                <form id="addCardForm" onsubmit="return false;">
+                    <input type="text" id="cardNumber" class="profile-input" placeholder="Номер карты" maxlength="19">
+                    <div class="card-row">
+                        <input type="text" id="expiryDate" class="profile-input half" placeholder="MM/YY" maxlength="5">
+                        <input type="text" id="cvv" class="profile-input half" placeholder="CVV" maxlength="3">
+                    </div>
+                    <div id="cardsMessage" class="modal-message"></div>
+                    <button type="button" onclick="addCard()" class="profile-save-btn">Добавить карту</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно редактирования карты -->
+    <div id="editCardModal" class="modal">
+        <div class="modal-content profile-modal">
+            <span class="close" onclick="closeEditCardModal()">&times;</span>
+            <h3 class="cards-title">Редактирование карты</h3>
+            <form id="editCardForm" onsubmit="return false;">
+                <input type="hidden" id="editCardCode">
+                <input type="text" id="editCardNumber" class="profile-input" placeholder="Номер карты" maxlength="19">
+                <div class="card-row">
+                    <input type="text" id="editExpiryDate" class="profile-input half" placeholder="MM/YY" maxlength="5">
+                    <input type="text" id="editCvv" class="profile-input half" placeholder="CVV" maxlength="3">
+                </div>
+                <div id="editCardMessage" class="modal-message"></div>
+                <button type="button" onclick="updateCard()" class="profile-save-btn">Сохранить</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно подтверждения email -->
+    <div id="emailVerifyModal" class="modal">
+        <div class="modal-content profile-modal">
+            <span class="close" onclick="closeEmailVerifyModal()">&times;</span>
+            <h3 class="cards-title">Подтверждение смены email</h3>
+            <div id="emailVerifyMessage" class="modal-message"></div>
+            <input type="text" id="verifyCode" class="profile-input" placeholder="Код из письма" maxlength="6">
+            <button onclick="confirmEmailChange()" class="profile-save-btn">Подтвердить</button>
+            <button onclick="resendEmailCode()" class="resend-code-btn">Отправить повторно</button>
+            <div id="emailTimer" class="timer">10:00</div>
+        </div>
+    </div>
+
+    <!-- Модальное окно подтверждения удаления карты -->
+    <div id="confirmDeleteModal" class="modal">
+        <div class="modal-content confirm-modal">
+            <h3 class="cards-title">Подтверждение удаления</h3>
+            <p style="text-align: center; margin-bottom: 20px; color: #80191B;">Вы уверены, что хотите удалить эту карту?</p>
+            <div style="display: flex; gap: 15px;">
+                <button onclick="confirmDeleteCard()" class="profile-save-btn" style="background-color: #80191B;">Удалить</button>
+                <button onclick="closeConfirmModal()" class="profile-save-btn" style="background-color: #DAA655; color: #80191B;">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно подтверждения возврата билета -->
+    <div id="returnTicketModal" class="modal">
+        <div class="modal-content confirm-modal">
+            <h3 class="cards-title">Подтверждение возврата</h3>
+            <p style="text-align: center; margin-bottom: 20px; color: #80191B;">Вы уверены, что хотите вернуть билет?</p>
+            <p style="text-align: center; margin-bottom: 20px; font-size: 14px; color: #666;">Денежные средства поступят на карту в течение 24 часов.</p>
+            <div style="display: flex; gap: 15px;">
+                <button onclick="confirmReturnTicket()" class="profile-save-btn" style="background-color: #80191B;">Вернуть</button>
+                <button onclick="closeReturnTicketModal()" class="profile-save-btn" style="background-color: #DAA655; color: #80191B;">Отмена</button>
+            </div>
+            <div id="returnTicketMessage" class="modal-message" style="display: none; margin-top: 15px;"></div>
+        </div>
+    </div>
+
+    <!-- Модальное окно архива билетов -->
+    <div id="archivedModal" class="modal archived-modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeArchivedModal()">&times;</span>
+            <h3>Архив билетов</h3>
+            <div id="archivedTicketsList" class="archived-list"></div>
+        </div>
+    </div>
+
+    <script>
+        // Безопасный вывод данных
+        let ticketsData = [];
+        try {
+            ticketsData = <%- JSON.stringify(tickets || []) %> || [];
+            ticketsData.forEach(ticket => {
+                if (ticket.event_date && ticket.event_date.includes('-')) {
+                    const parts = ticket.event_date.split('-');
+                    // Формат ДД.ММ без года
+                    ticket.event_date = `${parts[2]}.${parts[1]}`;
+                } else if (ticket.event_date && ticket.event_date.includes('.')) {
+                    // Если уже в формате ДД.ММ.ГГГГ, убираем год
+                    const parts = ticket.event_date.split('.');
+                    if (parts.length === 3) {
+                        ticket.event_date = `${parts[0]}.${parts[1]}`;
+                    }
+                }
+            });
+        } catch(e) {
+            console.error('Ошибка парсинга билетов:', e);
+            ticketsData = [];
+        }
+
+        console.log('Билеты из сервера:', ticketsData);
+        console.log('Количество билетов:', ticketsData.length);
+
+        // ==================== ДАННЫЕ ====================
+        let cardsData = [];
+        let currentEditCardCode = null;
+        let cardToDelete = null;
+        let emailTimerInterval = null;
+        let pendingNewEmail = null;
+        let isDataLoaded = false;
+        let ticketToReturn = null;
+
+        function isEventExpired(eventDateStr, eventTimeStr) {
+    if (!eventDateStr || !eventTimeStr) return false;
+    
+    // Формат: ДД.ММ
+    const dateParts = eventDateStr.split('.');
+    if (dateParts.length !== 2) return false;
+    
+    const eventDay = parseInt(dateParts[0], 10);
+    const eventMonth = parseInt(dateParts[1], 10);
+    const [eventHour, eventMinute] = eventTimeStr.split(':').map(Number);
+    
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentDay = now.getDate();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    
+    // Сравниваем месяц
+    if (eventMonth < currentMonth) {
+        return true;
+    }
+    if (eventMonth > currentMonth) {
+        return false;
+    }
+    
+    // Одинаковый месяц - сравниваем день
+    if (eventDay < currentDay) {
+        return true;
+    }
+    if (eventDay > currentDay) {
+        return false;
+    }
+    
+    // Одинаковый день - сравниваем время
+    if (eventHour < currentHour) {
+        return true;
+    }
+    if (eventHour > currentHour) {
+        return false;
+    }
+    
+    // Одинаковый час - сравниваем минуты
+    return eventMinute <= currentMinute;
+}
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        // Функция для рендера карточки билета (универсальная)
+        function renderTicketCard(ticket, isArchived = false) {
+            let canReturn = false;
+            if (!isArchived && ticket.event_date && ticket.event_time) {
+                const dateParts = ticket.event_date.split('.');
+                if (dateParts.length === 2) {
+                    const currentYear = new Date().getFullYear();
+                    let year = currentYear;
+                    const currentMonth = new Date().getMonth() + 1;
+                    const eventMonth = parseInt(dateParts[1]);
+                    const eventDay = parseInt(dateParts[0]);
+                    
+                    if (eventMonth < currentMonth) {
+                        year = currentYear + 1;
+                    } else if (eventMonth === currentMonth && eventDay < new Date().getDate()) {
+                        year = currentYear + 1;
+                    }
+                    
+                    const eventDateTime = new Date(
+                        year,
+                        eventMonth - 1,
+                        eventDay,
+                        parseInt(ticket.event_time.split(':')[0]),
+                        parseInt(ticket.event_time.split(':')[1]) || 0
+                    );
+                    const now = new Date();
+                    const hoursLeft = (eventDateTime - now) / (1000 * 60 * 60);
+                    canReturn = hoursLeft >= 24;
+                }
+            }
+            
+            return `
+                <div class="ticket-card">
+                    <div class="ticket-card__header">
+                        <div class="ticket-card__title">${escapeHtml(ticket.event_title)}</div>
+                        <div class="ticket-card__type">${escapeHtml(ticket.event_type)}</div>
+                    </div>
+                    <div class="ticket-card__body">
+                        <div class="ticket-card__info">
+                            <div class="ticket-card__info-item">
+                                <span class="ticket-card__label">Дата:</span>
+                                <span class="ticket-card__value">${ticket.event_date || '—'}</span>
+                            </div>
+                            <div class="ticket-card__info-item">
+                                <span class="ticket-card__label">Время:</span>
+                                <span class="ticket-card__value">${ticket.event_time || '—'}</span>
+                            </div>
+                            <div class="ticket-card__info-item">
+                                <span class="ticket-card__label">Билетов:</span>
+                                <span class="ticket-card__value">${ticket.quantity}</span>
+                            </div>
+                            <div class="ticket-card__info-item">
+                                <span class="ticket-card__label">Стоимость:</span>
+                                <span class="ticket-card__value ticket-card__price">${ticket.total_price}₽</span>
+                            </div>
+                        </div>
+                        <div class="ticket-card__action">
+                            ${!isArchived ? 
+                                `<button class="ticket-card__return-btn" onclick="openReturnTicketModal(${ticket.ticket_code})" ${!canReturn ? 'disabled' : ''}>
+                                    Вернуть
+                                </button>` : 
+                                `<span class="ticket-card__archived-badge">Архив</span>`
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderActiveTickets() {
+            const container = document.getElementById('activeTicketsContainer');
+            if (!container) return;
+
+            if (!ticketsData || ticketsData.length === 0) {
+                container.innerHTML = '<div class="empty-tickets-message">У вас пока нет купленных билетов</div>';
+                return;
+            }
+
+            const activeTickets = ticketsData.filter(ticket => !isEventExpired(ticket.event_date, ticket.event_time));
+
+            if (activeTickets.length === 0) {
+                container.innerHTML = '<div class="empty-tickets-message">У вас нет активных билетов</div>';
+                return;
+            }
+
+            container.innerHTML = activeTickets.map(ticket => renderTicketCard(ticket, false)).join('');
+        }
+
+        function renderArchivedInModal() {
+            const container = document.getElementById('archivedTicketsList');
+            if (!container) return;
+
+            if (!ticketsData || ticketsData.length === 0) {
+                container.innerHTML = '<div class="empty-archived">У вас нет билетов</div>';
+                return;
+            }
+
+            const archivedTickets = ticketsData.filter(ticket => isEventExpired(ticket.event_date, ticket.event_time));
+
+            if (archivedTickets.length === 0) {
+                container.innerHTML = '<div class="empty-archived">Архив билетов пуст</div>';
+                return;
+            }
+
+            container.innerHTML = archivedTickets.map(ticket => renderTicketCard(ticket, true)).join('');
+        }
+
+        // ==================== ВАЛИДАЦИЯ ФИО ====================
+        function validateFullName(fullName) {
+            const trimmed = fullName.trim();
+            if (!trimmed) {
+                return { valid: false, message: 'Введите ФИО' };
+            }
+            if (/\d/.test(trimmed)) {
+                return { valid: false, message: 'ФИО не должно содержать цифры' };
+            }
+            const words = trimmed.split(/\s+/);
+            if (words.length < 3) {
+                return { valid: false, message: 'ФИО должно содержать минимум 3 слова' };
+            }
+            for (let i = 0; i < words.length; i++) {
+                const word = words[i];
+                if (word.length < 2) {
+                    return { valid: false, message: `Слово "${word}" слишком короткое (минимум 2 символа)` };
+                }
+                if (!/^[А-Яа-яЁёA-Za-z\-]+$/.test(word)) {
+                    return { valid: false, message: `Слово "${word}" содержит недопустимые символы. Используйте только буквы` };
+                }
+            }
+            return { valid: true, message: '' };
+        }
+
+        // ==================== МАСКИ ====================
+        function maskCardNumber(input) {
+            if (!input) return;
+            let value = input.value.replace(/\D/g, '');
+            if (value.length > 16) value = value.slice(0, 16);
+            let formatted = '';
+            for (let i = 0; i < value.length; i++) {
+                if (i > 0 && i % 4 === 0) formatted += ' ';
+                formatted += value[i];
+            }
+            input.value = formatted;
+        }
+
+        function maskExpiryDate(input) {
+            if (!input) return;
+            let value = input.value.replace(/\D/g, '');
+            if (value.length > 4) value = value.slice(0, 4);
+            if (value.length >= 2) {
+                let month = value.slice(0, 2);
+                if (parseInt(month) > 12) month = '12';
+                if (parseInt(month) < 1) month = '01';
+                value = month + value.slice(2);
+            }
+            if (value.length > 2) {
+                input.value = value.slice(0, 2) + '/' + value.slice(2, 4);
+            } else {
+                input.value = value;
+            }
+        }
+
+        function maskCvv(input) {
+            if (!input) return;
+            input.value = input.value.replace(/\D/g, '').slice(0, 3);
+        }
+
+        function formatCardNumber(number) {
+            if (!number) return '';
+            let clean = number.toString().replace(/\s/g, '');
+            let formatted = '';
+            for (let i = 0; i < clean.length; i++) {
+                if (i > 0 && i % 4 === 0) formatted += ' ';
+                formatted += clean[i];
+            }
+            return formatted;
+        }
+
+        // ==================== ВСПОМОГАТЕЛЬНЫЕ ====================
+        function showMessage(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            el.textContent = message;
+            el.className = `modal-message ${type}`;
+            el.style.display = 'block';
+        }
+
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+            modal.classList.remove('closing');
+            modal.classList.add('show');
+            document.body.classList.add('modal-open');
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+            modal.classList.add('closing');
+            setTimeout(() => {
+                modal.classList.remove('show', 'closing');
+                if (!document.querySelector('.modal.show')) {
+                    document.body.classList.remove('modal-open');
+                }
+            }, 300);
+        }
+
+        // ==================== ВОЗВРАТ БИЛЕТА ====================
+        window.openReturnTicketModal = function(ticketCode) {
+            ticketToReturn = ticketCode;
+            openModal('returnTicketModal');
+        }
+
+        function closeReturnTicketModal() {
+            ticketToReturn = null;
+            const msgDiv = document.getElementById('returnTicketMessage');
+            if (msgDiv) msgDiv.style.display = 'none';
+            closeModal('returnTicketModal');
+        }
+
+        window.confirmReturnTicket = async function() {
+            if (!ticketToReturn) return;
+
+            const msgDiv = document.getElementById('returnTicketMessage');
+            const confirmBtn = document.querySelector('#returnTicketModal .profile-save-btn');
+            const originalText = confirmBtn?.textContent;
+
+            if (confirmBtn) {
+                confirmBtn.textContent = 'Обработка...';
+                confirmBtn.disabled = true;
+            }
+
+            try {
+                const res = await fetch(`/api/tickets/${ticketToReturn}/return`, { method: 'POST' });
+                const data = await res.json();
+
+                if (data.success) {
+                    showMessage('returnTicketMessage', 'Билет успешно возвращен!', 'success');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showMessage('returnTicketMessage', data.error || 'Ошибка при возврате билета', 'error');
+                    if (confirmBtn) {
+                        confirmBtn.textContent = originalText;
+                        confirmBtn.disabled = false;
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                showMessage('returnTicketMessage', 'Ошибка сервера', 'error');
+                if (confirmBtn) {
+                    confirmBtn.textContent = originalText;
+                    confirmBtn.disabled = false;
+                }
+            }
+        }
+
+        // ==================== ПРОВЕРКИ КАРТ ====================
+        function isCardExpired(expiryDate) {
+            const match = expiryDate.match(/^(\d{2})\/(\d{2})$/);
+            if (!match) return true;
+            const month = parseInt(match[1], 10);
+            const year = parseInt(match[2], 10);
+            const now = new Date();
+            const currentYear = now.getFullYear() % 100;
+            const currentMonth = now.getMonth() + 1;
+            if (year < currentYear) return true;
+            if (year === currentYear && month < currentMonth) return true;
+            return false;
+        }
+
+        function isCardDuplicate(cardNumber, excludeCardCode = null) {
+            const cleanNumber = cardNumber.replace(/\s/g, '');
+            return cardsData.some(card => {
+                if (excludeCardCode && card.card_code === excludeCardCode) return false;
+                const existingCleanNumber = card.card_number.replace(/\s/g, '');
+                return existingCleanNumber === cleanNumber;
+            });
+        }
+
+        // ==================== ОТОБРАЖЕНИЕ КАРТ ====================
+        function renderCards() {
+            const container = document.getElementById('cardsList');
+            if (!container) return;
+            if (!cardsData || cardsData.length === 0) {
+                container.innerHTML = '<p class="no-cards">У вас нет сохраненных карт</p>';
+                return;
+            }
+            container.innerHTML = cardsData.map(card => `
+                <div class="card-item" data-card-code="${card.card_code}">
+                    <div class="card-info">
+                        <span class="card-number">**** **** **** ${card.card_number.slice(-4)}</span>
+                        <span class="card-expiry">Срок: ${card.expiry_date}</span>
+                    </div>
+                    <div class="card-actions">
+                        <button class="card-edit-btn" onclick="window.openEditCardModal(${card.card_code}, '${card.card_number}', '${card.expiry_date}')">Изменить</button>
+                        <button class="card-delete-btn" onclick="window.deleteCard(${card.card_code})">Удалить</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadCardsData() {
+            try {
+                const res = await fetch('/api/cards');
+                const data = await res.json();
+                if (data.success) {
+                    cardsData = data.cards;
+                    isDataLoaded = true;
+                    renderCards();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки карт:', error);
+            }
+        }
+
+        // ==================== ПРОФИЛЬ ====================
+        window.openEditModal = function() { openModal('editModal'); }
+        window.closeEditModal = function() { closeModal('editModal'); }
+
+        window.switchTab = function(tab) {
+            const dataTab = document.getElementById('dataTab');
+            const emailTab = document.getElementById('emailTab');
+            const passwordTab = document.getElementById('passwordTab');
+            const btns = document.querySelectorAll('.tab-btn');
+            btns.forEach(btn => btn.classList.remove('active'));
+            if (tab === 'data') {
+                dataTab.classList.add('active');
+                btns[0].classList.add('active');
+                emailTab.classList.remove('active');
+                passwordTab.classList.remove('active');
+            } else if (tab === 'email') {
+                emailTab.classList.add('active');
+                btns[1].classList.add('active');
+                dataTab.classList.remove('active');
+                passwordTab.classList.remove('active');
+            } else {
+                passwordTab.classList.add('active');
+                btns[2].classList.add('active');
+                dataTab.classList.remove('active');
+                emailTab.classList.remove('active');
+            }
+        }
+
+        window.updateFullName = async function() {
+            const fullName = document.getElementById('fullName').value;
+            const validation = validateFullName(fullName);
+            if (!validation.valid) {
+                showMessage('editNameMessage', validation.message, 'error');
+                return;
+            }
+            try {
+                const res = await fetch('/profile/edit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `full_name=${encodeURIComponent(fullName)}`
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showMessage('editNameMessage', 'ФИО успешно изменено!', 'success');
+                    document.querySelector('.m-d-b-l-t-name').textContent = fullName;
+                    setTimeout(() => {
+                        const msg = document.getElementById('editNameMessage');
+                        if (msg) msg.style.display = 'none';
+                    }, 2000);
+                } else {
+                    showMessage('editNameMessage', data.message || 'Ошибка', 'error');
+                }
+            } catch (error) {
+                showMessage('editNameMessage', 'Ошибка сервера', 'error');
+            }
+        }
+
+        window.changePassword = async function() {
+            const current = document.getElementById('currentPassword').value;
+            const newPass = document.getElementById('newPassword').value;
+            const confirm = document.getElementById('confirmPassword').value;
+
+            if (newPass !== confirm) {
+                showMessage('passwordMessage', 'Пароли не совпадают', 'error');
+                return;
+            }
+            if (newPass.length < 6) {
+                showMessage('passwordMessage', 'Пароль минимум 6 символов', 'error');
+                return;
+            }
+            if (current === newPass) {
+                showMessage('passwordMessage', 'Новый пароль не должен совпадать со старым', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch('/profile/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `current_password=${encodeURIComponent(current)}&new_password=${encodeURIComponent(newPass)}&confirm_password=${encodeURIComponent(confirm)}`
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showMessage('passwordMessage', 'Пароль изменен!', 'success');
+                    document.getElementById('currentPassword').value = '';
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                    setTimeout(() => {
+                        const msg = document.getElementById('passwordMessage');
+                        if (msg) msg.style.display = 'none';
+                    }, 2000);
+                } else {
+                    showMessage('passwordMessage', data.message || 'Ошибка', 'error');
+                }
+            } catch (error) {
+                showMessage('passwordMessage', 'Ошибка сервера', 'error');
+            }
+        }
+
+        window.logout = function() { window.location.href = '/logout'; }
+
+        // ==================== КАРТЫ ====================
+        window.openConfirmModal = function(cardCode) {
+            cardToDelete = cardCode;
+            openModal('confirmDeleteModal');
+        }
+
+        window.closeConfirmModal = function() {
+            cardToDelete = null;
+            closeModal('confirmDeleteModal');
+        }
+
+        window.confirmDeleteCard = async function() {
+            if (!cardToDelete) return;
+            try {
+                const res = await fetch(`/api/cards/${cardToDelete}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    await loadCardsData();
+                    showMessage('cardsMessage', 'Карта удалена!', 'success');
+                    closeConfirmModal();
+                    setTimeout(() => {
+                        const msg = document.getElementById('cardsMessage');
+                        if (msg) msg.style.display = 'none';
+                    }, 2000);
+                } else {
+                    showMessage('cardsMessage', 'Ошибка при удалении', 'error');
+                }
+            } catch (error) {
+                showMessage('cardsMessage', 'Ошибка сервера', 'error');
+            }
+        }
+
+        window.deleteCard = function(cardCode) {
+            if (!isDataLoaded) {
+                loadCardsData().then(() => openConfirmModal(cardCode));
+            } else {
+                openConfirmModal(cardCode);
+            }
+        }
+
+        window.openCardsModal = function() {
+            loadCardsData();
+            openModal('cardsModal');
+            document.getElementById('cardNumber').value = '';
+            document.getElementById('expiryDate').value = '';
+            document.getElementById('cvv').value = '';
+            const msg = document.getElementById('cardsMessage');
+            if (msg) msg.style.display = 'none';
+        }
+
+        window.closeCardsModal = function() { closeModal('cardsModal'); }
+
+        window.openEditCardModal = function(code, fullCardNumber, expiry) {
+            if (!isDataLoaded) {
+                loadCardsData().then(() => {
+                    openEditCardModalInternal(code, fullCardNumber, expiry);
+                });
+            } else {
+                openEditCardModalInternal(code, fullCardNumber, expiry);
+            }
+        }
+
+        function openEditCardModalInternal(code, fullCardNumber, expiry) {
+            currentEditCardCode = code;
+            document.getElementById('editCardCode').value = code;
+            document.getElementById('editCardNumber').value = formatCardNumber(fullCardNumber);
+            document.getElementById('editExpiryDate').value = expiry;
+            document.getElementById('editCvv').value = '';
+            const msg = document.getElementById('editCardMessage');
+            if (msg) msg.style.display = 'none';
+            openModal('editCardModal');
+        }
+
+        window.closeEditCardModal = function() { closeModal('editCardModal'); }
+
+        window.addCard = async function() {
+            if (cardsData && cardsData.length >= 5) {
+                showMessage('cardsMessage', 'Нельзя добавить более 5 карт', 'error');
+                return;
+            }
+
+            const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
+            const expiryDate = document.getElementById('expiryDate').value;
+            const cvv = document.getElementById('cvv').value;
+
+            if (!cardNumber || cardNumber.length !== 16) {
+                showMessage('cardsMessage', 'Номер карты должен быть 16 цифр', 'error');
+                return;
+            }
+            if (!/^\d+$/.test(cardNumber)) {
+                showMessage('cardsMessage', 'Только цифры', 'error');
+                return;
+            }
+            if (isCardDuplicate(cardNumber)) {
+                showMessage('cardsMessage', 'Эта карта уже добавлена!', 'error');
+                return;
+            }
+            if (!expiryDate.match(/^\d{2}\/\d{2}$/)) {
+                showMessage('cardsMessage', 'Формат MM/YY', 'error');
+                return;
+            }
+            const month = parseInt(expiryDate.slice(0, 2));
+            if (month < 1 || month > 12) {
+                showMessage('cardsMessage', 'Месяц от 01 до 12', 'error');
+                return;
+            }
+            if (isCardExpired(expiryDate)) {
+                showMessage('cardsMessage', 'Срок действия карты истек!', 'error');
+                return;
+            }
+            if (!cvv || !/^\d{3}$/.test(cvv)) {
+                showMessage('cardsMessage', 'CVV 3 цифры', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch('/profile/add-card', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ card_number: cardNumber, expiry_date: expiryDate, cvv })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showMessage('cardsMessage', 'Карта добавлена!', 'success');
+                    document.getElementById('cardNumber').value = '';
+                    document.getElementById('expiryDate').value = '';
+                    document.getElementById('cvv').value = '';
+                    await loadCardsData();
+                    setTimeout(() => {
+                        const msg = document.getElementById('cardsMessage');
+                        if (msg) msg.style.display = 'none';
+                    }, 2000);
+                } else {
+                    showMessage('cardsMessage', data.message || 'Ошибка', 'error');
+                }
+            } catch (error) {
+                showMessage('cardsMessage', 'Ошибка сервера', 'error');
+            }
+        }
+
+        window.updateCard = async function() {
+            const code = document.getElementById('editCardCode').value;
+            const cardNumber = document.getElementById('editCardNumber').value.replace(/\s/g, '');
+            const expiryDate = document.getElementById('editExpiryDate').value;
+            const cvv = document.getElementById('editCvv').value;
+
+            if (!cardNumber || cardNumber.length !== 16) {
+                showMessage('editCardMessage', 'Номер карты 16 цифр', 'error');
+                return;
+            }
+            if (!/^\d+$/.test(cardNumber)) {
+                showMessage('editCardMessage', 'Только цифры', 'error');
+                return;
+            }
+            if (isCardDuplicate(cardNumber, parseInt(code))) {
+                showMessage('editCardMessage', 'Эта карта уже добавлена!', 'error');
+                return;
+            }
+            if (!expiryDate.match(/^\d{2}\/\d{2}$/)) {
+                showMessage('editCardMessage', 'Формат MM/YY', 'error');
+                return;
+            }
+            if (isCardExpired(expiryDate)) {
+                showMessage('editCardMessage', 'Срок действия карты истек!', 'error');
+                return;
+            }
+            if (!cvv || !/^\d{3}$/.test(cvv)) {
+                showMessage('editCardMessage', 'CVV 3 цифры', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/cards/${code}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ card_number: cardNumber, expiry_date: expiryDate, cvv })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showMessage('editCardMessage', 'Карта обновлена!', 'success');
+                    closeEditCardModal();
+                    await loadCardsData();
+                } else {
+                    showMessage('editCardMessage', data.message || 'Ошибка', 'error');
+                }
+            } catch (error) {
+                showMessage('editCardMessage', 'Ошибка сервера', 'error');
+            }
+        }
+
+        window.requestEmailChange = async function() {
+            const newEmail = document.getElementById('newEmail').value;
+            const currentEmail = document.querySelector('.m-d-b-l-t-razd').textContent;
+
+            if (!newEmail) {
+                showMessage('emailChangeMessage', 'Введите email', 'error');
+                return;
+            }
+
+            if (newEmail === currentEmail) {
+                showMessage('emailChangeMessage', 'Новый email совпадает с текущим', 'error');
+                return;
+            }
+
+            const submitBtn = document.querySelector('#emailTab .profile-save-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Отправка кода...';
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.7';
+
+            try {
+                const res = await fetch('/profile/request-email-change', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ new_email: newEmail })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    pendingNewEmail = newEmail;
+                    openModal('emailVerifyModal');
+                    startEmailTimer(600);
+                    showMessage('emailChangeMessage', 'Код отправлен!', 'success');
+                    setTimeout(() => {
+                        const msg = document.getElementById('emailChangeMessage');
+                        if (msg) msg.style.display = 'none';
+                    }, 2000);
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                } else {
+                    showMessage('emailChangeMessage', data.message, 'error');
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                }
+            } catch (error) {
+                showMessage('emailChangeMessage', 'Ошибка', 'error');
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+            }
+        }
+
+        window.closeEmailVerifyModal = function() {
+            if (emailTimerInterval) clearInterval(emailTimerInterval);
+            closeModal('emailVerifyModal');
+        }
+
+        window.confirmEmailChange = async function() {
+            const code = document.getElementById('verifyCode').value;
+            if (!code || code.length !== 6) {
+                showMessage('emailVerifyMessage', 'Введите 6 цифр', 'error');
+                return;
+            }
+            try {
+                const res = await fetch('/profile/confirm-email-change', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showMessage('emailVerifyMessage', 'Email изменен!', 'success');
+                    document.querySelector('.m-d-b-l-t-razd').textContent = pendingNewEmail;
+                    document.getElementById('verifyCode').value = '';
+                    setTimeout(() => {
+                        closeEmailVerifyModal();
+                        const msg = document.getElementById('emailVerifyMessage');
+                        if (msg) msg.style.display = 'none';
+                    }, 2000);
+                } else {
+                    showMessage('emailVerifyMessage', data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('emailVerifyMessage', 'Ошибка', 'error');
+            }
+        }
+
+        window.resendEmailCode = async function() {
+            if (!pendingNewEmail) return;
+            try {
+                const res = await fetch('/profile/request-email-change', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ new_email: pendingNewEmail })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (emailTimerInterval) clearInterval(emailTimerInterval);
+                    startEmailTimer(600);
+                    showMessage('emailVerifyMessage', 'Код отправлен повторно', 'success');
+                    setTimeout(() => {
+                        const msg = document.getElementById('emailVerifyMessage');
+                        if (msg) msg.style.display = 'none';
+                    }, 2000);
+                } else {
+                    showMessage('emailVerifyMessage', data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('emailVerifyMessage', 'Ошибка', 'error');
+            }
+        }
+
+        function startEmailTimer(seconds) {
+            const timer = document.getElementById('emailTimer');
+            if (!timer) return;
+            if (emailTimerInterval) clearInterval(emailTimerInterval);
+            let remaining = seconds;
+            emailTimerInterval = setInterval(() => {
+                const minutes = Math.floor(remaining / 60);
+                const secs = remaining % 60;
+                timer.textContent = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                if (remaining <= 0) {
+                    clearInterval(emailTimerInterval);
+                    timer.textContent = 'Код истек';
+                }
+                remaining--;
+            }, 1000);
+        }
+
+        // ==================== АРХИВ БИЛЕТОВ ====================
+        window.openArchivedModal = function() {
+            renderArchivedInModal();
+            openModal('archivedModal');
+        }
+
+        function closeArchivedModal() {
+            closeModal('archivedModal');
+        }
+
+        // ==================== ИНИЦИАЛИЗАЦИЯ ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            renderActiveTickets();
+            loadCardsData();
+
+            const cn = document.getElementById('cardNumber');
+            const ed = document.getElementById('expiryDate');
+            const cv = document.getElementById('cvv');
+            const ecn = document.getElementById('editCardNumber');
+            const eed = document.getElementById('editExpiryDate');
+            const ecv = document.getElementById('editCvv');
+
+            if (cn) cn.addEventListener('input', function() { maskCardNumber(this); });
+            if (ed) ed.addEventListener('input', function() { maskExpiryDate(this); });
+            if (cv) cv.addEventListener('input', function() { maskCvv(this); });
+            if (ecn) ecn.addEventListener('input', function() { maskCardNumber(this); });
+            if (eed) eed.addEventListener('input', function() { maskExpiryDate(this); });
+            if (ecv) ecv.addEventListener('input', function() { maskCvv(this); });
+        });
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    if (modal.classList.contains('show')) {
+                        const id = modal.id;
+                        if (id === 'editModal') closeModal('editModal');
+                        if (id === 'cardsModal') closeModal('cardsModal');
+                        if (id === 'editCardModal') closeModal('editCardModal');
+                        if (id === 'emailVerifyModal') closeModal('emailVerifyModal');
+                        if (id === 'confirmDeleteModal') closeModal('confirmDeleteModal');
+                        if (id === 'returnTicketModal') closeModal('returnTicketModal');
+                        if (id === 'archivedModal') closeModal('archivedModal');
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+
+</html>

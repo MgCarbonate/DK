@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оплата билета</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" href="/img/logo-icon.jpg">
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+        <main>
+            <div class="payment-block">
+                <p class="payment-zag">Оплата</p>
+                <div class="payment-info" id="paymentInfo">
+                    <div id="cartEventsContainer"></div>
+                    <div class="p-i-t">
+                        <div class="p-i-t-r">
+                            <p><span>К оплате: </span><span id="totalVal"></span>₽</p>
+                        </div>
+                    </div>
+                    <div class="p-i-b">
+                        <div class="p-i-b-t">
+                            <p>Карта для оплаты</p>
+                            <button id="addCardBtn">Добавить карту</button>
+                        </div>
+                        <div class="payment-radio" id="cardsContainer">
+                            <div class="no-cards-message">Загрузка карт...</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="payment-btn" id="payBtn">Оплатить</button>
+            </div>
+        </main>
+
+        <%- include('partials/footer') %>
+
+            <div id="addCardModal" class="modal">
+                <div class="modal-content profile-modal">
+                    <span class="close" onclick="closeAddCardModal()">&times;</span>
+                    <h3 class="cards-title">Добавить карту</h3>
+                    <div>
+                        <input type="text" id="cardNumber" class="profile-input" placeholder="Номер карты"
+                            maxlength="19">
+                        <div class="add-card-row">
+                            <input type="text" id="expiryDate" class="profile-input half" placeholder="MM/YY"
+                                maxlength="5">
+                            <input type="text" id="cvv" class="profile-input half" placeholder="CVV" maxlength="3">
+                        </div>
+                        <div id="addCardMessage" class="modal-message"></div>
+                        <button id="submitCardBtn" class="profile-save-btn">Добавить карту</button>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                let cart = [];
+                let userCards = [];
+                let selectedCardCode = null;
+                let totalAmount = 0;
+
+                function escapeHtml(str) {
+                    if (!str) return '';
+                    return str.replace(/[&<>]/g, function (m) {
+                        if (m === '&') return '&amp;';
+                        if (m === '<') return '&lt;';
+                        if (m === '>') return '&gt;';
+                        return m;
+                    });
+                }
+
+                function showToast(message, type) {
+                    const existingToast = document.querySelector('.toast-notification');
+                    if (existingToast) existingToast.remove();
+
+                    const toast = document.createElement('div');
+                    toast.className = `toast-notification ${type}`;
+                    toast.textContent = message;
+                    document.body.appendChild(toast);
+
+                    setTimeout(() => {
+                        toast.classList.add('fade-out');
+                        setTimeout(() => toast.remove(), 300);
+                    }, 3000);
+                }
+
+                function loadCart() {
+                    const savedCart = sessionStorage.getItem('cart');
+                    if (savedCart) {
+                        cart = JSON.parse(savedCart);
+                    } else {
+                        cart = [];
+                    }
+                }
+
+                async function loadCartEvents() {
+                    const container = document.getElementById('cartEventsContainer');
+                    if (!container) return;
+
+                    if (cart.length === 0) {
+                        container.innerHTML = '<div class="empty-cart-message"><p>Корзина пуста</p></div>';
+                        document.getElementById('totalVal').textContent = '0';
+                        return;
+                    }
+
+                    let html = '';
+                    totalAmount = 0;
+
+                    for (const item of cart) {
+                        try {
+                            const res = await fetch(`/api/events/${item.event_code}`);
+                            const data = await res.json();
+                            if (data.success && data.event) {
+                                const event = data.event;
+                                const itemTotal = event.price * item.quantity;
+                                totalAmount += itemTotal;
+                                html += `
+                        <div class="cart-item-summary">
+                            <p class="cart-item-title">${escapeHtml(event.title_full)}</p>
+                            <p class="cart-item-meta">${escapeHtml(event.event_type)} | ${event.date} ${event.time}</p>
+                            <p class="cart-item-price-info">${item.quantity} шт. x ${event.price}₽ = <strong class="cart-item-total">${itemTotal}₽</strong></p>
+                        </div>
+                    `;
+                            }
+                        } catch (error) {
+                            console.error('Ошибка загрузки мероприятия:', error);
+                        }
+                    }
+
+                    container.innerHTML = html;
+                    document.getElementById('totalVal').textContent = totalAmount;
+                }
+
+                async function loadCards() {
+                    const container = document.getElementById('cardsContainer');
+                    if (!container) return;
+                    try {
+                        const res = await fetch('/api/cards');
+                        const data = await res.json();
+                        if (data.success && data.cards && data.cards.length > 0) {
+                            userCards = data.cards;
+                            container.innerHTML = userCards.map(card => `
+                    <div class="meowl" data-card="${card.card_code}">
+                        <input type="radio" name="payment" value="${card.card_code}" class="card-radio">
+                        <p>**** **** **** ${card.card_number.slice(-4)}</p>
+                    </div>
+                `).join('');
+                            const firstRadio = document.querySelector('input[name="payment"]');
+                            if (firstRadio) {
+                                firstRadio.checked = true;
+                                selectedCardCode = parseInt(firstRadio.value);
+                            }
+                            document.querySelectorAll('.meowl').forEach(el => {
+                                el.onclick = () => {
+                                    const radio = el.querySelector('input');
+                                    radio.checked = true;
+                                    selectedCardCode = parseInt(radio.value);
+                                };
+                            });
+                        } else {
+                            container.innerHTML = '<div class="no-cards-message"><p>У вас нет сохраненных карт</p><p>Нажмите "Добавить карту"</p></div>';
+                        }
+                    } catch (error) {
+                        console.error('Ошибка загрузки карт:', error);
+                        container.innerHTML = '<div class="no-cards-message">Ошибка загрузки карт</div>';
+                    }
+                }
+
+                function isCardExpired(expiryDate) {
+                    const match = expiryDate.match(/^(\d{2})\/(\d{2})$/);
+                    if (!match) return true;
+                    const month = parseInt(match[1], 10);
+                    let year = parseInt(match[2], 10);
+                    year = 2000 + year;
+                    const now = new Date();
+                    const currentYear = now.getFullYear();
+                    const currentMonth = now.getMonth() + 1;
+                    if (year < currentYear) return true;
+                    if (year === currentYear && month < currentMonth) return true;
+                    return false;
+                }
+
+                function maskCardNumber(input) {
+                    let value = input.value.replace(/\D/g, '');
+                    if (value.length > 16) value = value.slice(0, 16);
+                    let formatted = '';
+                    for (let i = 0; i < value.length; i++) {
+                        if (i > 0 && i % 4 === 0) formatted += ' ';
+                        formatted += value[i];
+                    }
+                    input.value = formatted;
+                }
+
+                function maskExpiryDate(input) {
+                    let value = input.value.replace(/\D/g, '');
+                    if (value.length > 4) value = value.slice(0, 4);
+                    if (value.length >= 2) {
+                        let month = value.slice(0, 2);
+                        if (parseInt(month) > 12) month = '12';
+                        if (parseInt(month) < 1) month = '01';
+                        value = month + value.slice(2);
+                    }
+                    if (value.length > 2) {
+                        input.value = value.slice(0, 2) + '/' + value.slice(2, 4);
+                    } else {
+                        input.value = value;
+                    }
+                }
+
+                function maskCvv(input) {
+                    input.value = input.value.replace(/\D/g, '').slice(0, 3);
+                }
+
+                function openAddCardModal() {
+                    const modal = document.getElementById('addCardModal');
+                    modal.classList.add('show');
+                    document.body.classList.add('modal-open');
+                    document.getElementById('cardNumber').value = '';
+                    document.getElementById('expiryDate').value = '';
+                    document.getElementById('cvv').value = '';
+                    const msg = document.getElementById('addCardMessage');
+                    if (msg) {
+                        msg.style.display = 'none';
+                        msg.textContent = '';
+                        msg.className = 'modal-message';
+                    }
+                }
+
+                function closeAddCardModal() {
+                    const modal = document.getElementById('addCardModal');
+                    modal.classList.remove('show');
+                    document.body.classList.remove('modal-open');
+                }
+
+                async function submitNewCard() {
+                    const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
+                    const expiryDate = document.getElementById('expiryDate').value;
+                    const cvv = document.getElementById('cvv').value;
+
+                    if (!cardNumber || cardNumber.length !== 16) {
+                        showToast('Номер карты должен быть 16 цифр', 'error');
+                        return;
+                    }
+                    if (!/^\d+$/.test(cardNumber)) {
+                        showToast('Только цифры', 'error');
+                        return;
+                    }
+                    if (!expiryDate.match(/^\d{2}\/\d{2}$/)) {
+                        showToast('Формат MM/YY', 'error');
+                        return;
+                    }
+                    if (isCardExpired(expiryDate)) {
+                        showToast('Срок действия карты истек', 'error');
+                        return;
+                    }
+                    if (!cvv || !/^\d{3}$/.test(cvv)) {
+                        showToast('CVV 3 цифры', 'error');
+                        return;
+                    }
+
+                    const submitBtn = document.getElementById('submitCardBtn');
+                    const originalText = submitBtn.textContent;
+                    submitBtn.textContent = 'Добавление...';
+                    submitBtn.disabled = true;
+
+                    try {
+                        const res = await fetch('/api/cards', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ card_number: cardNumber, expiry_date: expiryDate, cvv })
+                        });
+                        const data = await res.json();
+
+                        if (data.success) {
+                            showToast('Карта добавлена!', 'success');
+                            setTimeout(() => {
+                                closeAddCardModal();
+                                loadCards();
+                            }, 1500);
+                        } else {
+                            showToast(data.message || 'Ошибка', 'error');
+                            submitBtn.textContent = originalText;
+                            submitBtn.disabled = false;
+                        }
+                    } catch (error) {
+                        showToast('Ошибка сервера', 'error');
+                        submitBtn.textContent = originalText;
+                        submitBtn.disabled = false;
+                    }
+                }
+
+                async function processPayment() {
+                    if (!selectedCardCode && userCards.length > 0) {
+                        selectedCardCode = userCards[0].card_code;
+                    }
+                    if (!selectedCardCode) {
+                        showToast('Добавьте или выберите карту для оплаты', 'error');
+                        return;
+                    }
+
+                    if (cart.length === 0) {
+                        showToast('Корзина пуста', 'error');
+                        return;
+                    }
+
+                    const payBtn = document.getElementById('payBtn');
+                    const originalText = payBtn.textContent;
+                    payBtn.textContent = 'Обработка...';
+                    payBtn.disabled = true;
+
+                    try {
+                        const res = await fetch('/api/payment/process-multiple', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ cart: cart, card_code: selectedCardCode })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            showToast('Оплата прошла успешно!', 'success');
+                            sessionStorage.removeItem('cart');
+                            setTimeout(() => { window.location.href = '/profile'; }, 2000);
+                        } else {
+                            showToast(data.message || 'Ошибка при оплате', 'error');
+                            payBtn.textContent = originalText;
+                            payBtn.disabled = false;
+                        }
+                    } catch (error) {
+                        console.error('Ошибка оплаты:', error);
+                        showToast('Ошибка сервера. Попробуйте позже.', 'error');
+                        payBtn.textContent = originalText;
+                        payBtn.disabled = false;
+                    }
+                }
+
+                // Инициализация
+                document.getElementById('addCardBtn').onclick = openAddCardModal;
+                document.getElementById('submitCardBtn').onclick = submitNewCard;
+                document.getElementById('payBtn').onclick = processPayment;
+                window.closeAddCardModal = closeAddCardModal;
+
+                const cardNumberInput = document.getElementById('cardNumber');
+                const expiryDateInput = document.getElementById('expiryDate');
+                const cvvInput = document.getElementById('cvv');
+                if (cardNumberInput) cardNumberInput.addEventListener('input', function () { maskCardNumber(this); });
+                if (expiryDateInput) expiryDateInput.addEventListener('input', function () { maskExpiryDate(this); });
+                if (cvvInput) cvvInput.addEventListener('input', function () { maskCvv(this); });
+
+                window.onclick = function (event) {
+                    const modal = document.getElementById('addCardModal');
+                    if (event.target === modal) closeAddCardModal();
+                }
+
+                loadCart();
+                loadCartEvents();
+                loadCards();
+            </script>
+</body>
+
+</html>

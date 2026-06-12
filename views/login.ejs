@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" href="/img/logo-icon.jpg">
+</head>
+
+<body>
+    <%- include('partials/header', { hideBanner: true }) %>
+
+        <main>
+            <div class="auth-reg">
+                <div class="auth-reg-info">
+                    <form id="loginForm" class="auth-reg-form">
+                        <p class="auth-zag">Вход</p>
+
+                        <div class="auth-inputs">
+                            <input type="email" name="email" id="loginEmail" class="auth-field" placeholder="Почта"
+                                required>
+                            <input type="password" name="password" id="loginPassword" class="auth-field"
+                                placeholder="Пароль" required>
+                        </div>
+                        <div class="forg-passw-container">
+                            <p class="forg-passw" onclick="openForgotModal()">Забыли пароль?</p>
+                        </div>
+                        <button type="submit" id="loginBtn" class="auth-button">
+                            <p>Войти в аккаунт</p>
+                        </button>
+                        <a href="/register" class="no-acc">У меня нет аккаунта</a>
+                    </form>
+                </div>
+            </div>
+        </main>
+
+        <%- include('partials/footer') %>
+
+            <!-- Модальное окно для восстановления пароля -->
+            <div id="forgotModal" class="modal">
+                <div class="modal-content profile-modal" style="max-width: 450px;">
+                    <span class="close" onclick="closeForgotModal()">&times;</span>
+                    <h3 class="cards-title">Восстановление пароля</h3>
+                    <div id="forgotMessage" class="modal-message" style="display: none;"></div>
+                    <div id="forgotStep1" class="forgot-step">
+                        <p style="color: #80191B; margin-bottom: 20px; text-align: center;">
+                            Введите ваш email, и мы отправим код для сброса пароля
+                        </p>
+                        <input type="email" id="resetEmail" class="profile-input" placeholder="Ваш email" required>
+                        <button onclick="sendResetCode()" class="profile-save-btn">Отправить код</button>
+                    </div>
+                    <div id="forgotStep2" class="forgot-step" style="display: none;">
+                        <p style="color: #80191B; margin-bottom: 10px; text-align: center;">
+                            Код отправлен на <strong id="resetEmailDisplay"></strong>
+                        </p>
+                        <input type="text" id="resetCode" class="profile-input" placeholder="Код из письма"
+                            maxlength="6">
+                        <input type="password" id="newPassword" class="profile-input" placeholder="Новый пароль">
+                        <input type="password" id="confirmNewPassword" class="profile-input"
+                            placeholder="Подтвердите пароль">
+                        <button onclick="resetPassword()" class="profile-save-btn">Сбросить пароль</button>
+                        <button onclick="resendResetCode()" class="resend-code-btn">Отправить код повторно</button>
+                        <div id="resetTimer" class="timer" style="margin-top: 10px;">10:00</div>
+                    </div>
+                </div>
+            </div>
+
+            <style>
+                .forgot-step {
+                    transition: all 0.3s ease;
+                }
+
+                .resend-code-btn {
+                    width: 100%;
+                    background: none;
+                    border: 2px solid #80191B;
+                    color: #80191B;
+                    padding: 10px;
+                    border-radius: 20px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    margin-top: 10px;
+                    transition: all 0.3s ease;
+                }
+
+                .resend-code-btn:hover {
+                    background-color: #80191B;
+                    color: white;
+                    transform: scale(0.98);
+                }
+
+                .timer {
+                    text-align: center;
+                    font-size: 14px;
+                    color: #80191B;
+                    font-family: monospace;
+                    margin-top: 15px;
+                }
+
+                .forg-passw {
+                    cursor: pointer;
+                }
+            </style>
+
+            <script>
+                function showToast(message, type) {
+                    const existingToast = document.querySelector('.toast-notification');
+                    if (existingToast) existingToast.remove();
+
+                    const toast = document.createElement('div');
+                    toast.className = `toast-notification ${type}`;
+                    toast.textContent = message;
+                    document.body.appendChild(toast);
+
+                    setTimeout(() => {
+                        toast.classList.add('fade-out');
+                        setTimeout(() => toast.remove(), 300);
+                    }, 3000);
+                }
+
+                let resetTimerInterval = null;
+                let currentResetEmail = null;
+
+                document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    const email = document.getElementById('loginEmail').value;
+                    const password = document.getElementById('loginPassword').value;
+
+                    // Меняем кнопку
+                    const submitBtn = document.getElementById('loginBtn');
+                    const originalText = submitBtn.querySelector('p').textContent;
+                    submitBtn.querySelector('p').textContent = 'Вход...';
+                    submitBtn.disabled = true;
+                    submitBtn.style.opacity = '0.7';
+
+                    try {
+                        const response = await fetch('/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: `email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            showToast('Вход выполнен!', 'success');
+                            setTimeout(() => {
+                                window.location.href = data.redirect;
+                            }, 1000);
+                        } else {
+                            showToast(data.error, 'error');
+                            submitBtn.querySelector('p').textContent = originalText;
+                            submitBtn.disabled = false;
+                            submitBtn.style.opacity = '1';
+                        }
+                    } catch (error) {
+                        showToast('Ошибка при входе', 'error');
+                        submitBtn.querySelector('p').textContent = originalText;
+                        submitBtn.disabled = false;
+                        submitBtn.style.opacity = '1';
+                    }
+                });
+
+                function openForgotModal() {
+                    let modal = document.getElementById('forgotModal');
+                    document.getElementById('forgotStep1').style.display = 'block';
+                    document.getElementById('forgotStep2').style.display = 'none';
+                    document.getElementById('resetEmail').value = '';
+                    document.getElementById('resetCode').value = '';
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('confirmNewPassword').value = '';
+                    document.getElementById('forgotMessage').style.display = 'none';
+                    if (resetTimerInterval) clearInterval(resetTimerInterval);
+                    modal.classList.remove('closing');
+                    modal.classList.add('show');
+                    document.body.style.overflow = 'hidden';
+                }
+
+                function closeForgotModal() {
+                    let modal = document.getElementById('forgotModal');
+                    modal.classList.add('closing');
+                    if (resetTimerInterval) clearInterval(resetTimerInterval);
+                    setTimeout(() => {
+                        modal.classList.remove('show', 'closing');
+                        document.body.style.overflow = '';
+                    }, 300);
+                }
+
+                function showForgotMessage(message, type) {
+                    const msgDiv = document.getElementById('forgotMessage');
+                    msgDiv.textContent = message;
+                    msgDiv.className = `modal-message ${type}`;
+                    msgDiv.style.display = 'block';
+                    setTimeout(() => {
+                        msgDiv.style.display = 'none';
+                    }, 3000);
+                }
+
+                async function sendResetCode() {
+                    const email = document.getElementById('resetEmail').value;
+                    if (!email) {
+                        showForgotMessage('Введите email', 'error');
+                        return;
+                    }
+
+                    // Меняем кнопку
+                    const submitBtn = document.querySelector('#forgotStep1 .profile-save-btn');
+                    const originalText = submitBtn.textContent;
+                    submitBtn.textContent = 'Отправка кода...';
+                    submitBtn.disabled = true;
+                    submitBtn.style.opacity = '0.7';
+
+                    try {
+                        const response = await fetch('/auth/forgot-password', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email })
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            currentResetEmail = email;
+                            document.getElementById('resetEmailDisplay').textContent = email;
+                            document.getElementById('forgotStep1').style.display = 'none';
+                            document.getElementById('forgotStep2').style.display = 'block';
+                            startResetTimer(600);
+                            showForgotMessage(result.message, 'success');
+                        } else {
+                            showForgotMessage(result.message, 'error');
+                            submitBtn.textContent = originalText;
+                            submitBtn.disabled = false;
+                            submitBtn.style.opacity = '1';
+                        }
+                    } catch (error) {
+                        showForgotMessage('Ошибка. Попробуйте позже.', 'error');
+                        submitBtn.textContent = originalText;
+                        submitBtn.disabled = false;
+                        submitBtn.style.opacity = '1';
+                    }
+                }
+
+                async function resetPassword() {
+                    const code = document.getElementById('resetCode').value;
+                    const newPassword = document.getElementById('newPassword').value;
+                    const confirmPassword = document.getElementById('confirmNewPassword').value;
+
+                    if (!code || code.length !== 6) {
+                        showForgotMessage('Введите 6-значный код', 'error');
+                        return;
+                    }
+                    if (newPassword !== confirmPassword) {
+                        showForgotMessage('Пароли не совпадают', 'error');
+                        return;
+                    }
+                    if (newPassword.length < 6) {
+                        showForgotMessage('Пароль минимум 6 символов', 'error');
+                        return;
+                    }
+
+                    // Меняем кнопку
+                    const submitBtn = document.querySelector('#forgotStep2 .profile-save-btn');
+                    const originalText = submitBtn.textContent;
+                    submitBtn.textContent = 'Сброс пароля...';
+                    submitBtn.disabled = true;
+                    submitBtn.style.opacity = '0.7';
+
+                    try {
+                        const response = await fetch('/auth/reset-password', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: currentResetEmail, code, new_password: newPassword })
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            showForgotMessage(result.message, 'success');
+                            setTimeout(() => {
+                                closeForgotModal();
+                                window.location.href = '/login';
+                            }, 1500);
+                        } else {
+                            showForgotMessage(result.message, 'error');
+                            submitBtn.textContent = originalText;
+                            submitBtn.disabled = false;
+                            submitBtn.style.opacity = '1';
+                        }
+                    } catch (error) {
+                        showForgotMessage('Ошибка', 'error');
+                        submitBtn.textContent = originalText;
+                        submitBtn.disabled = false;
+                        submitBtn.style.opacity = '1';
+                    }
+                }
+
+                async function resendResetCode() {
+                    if (!currentResetEmail) return;
+
+                    // Меняем кнопку
+                    const resendBtn = document.querySelector('.resend-code-btn');
+                    const originalText = resendBtn.textContent;
+                    resendBtn.textContent = 'Отправка...';
+                    resendBtn.disabled = true;
+                    resendBtn.style.opacity = '0.7';
+
+                    try {
+                        const response = await fetch('/auth/resend-reset-code', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: currentResetEmail })
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            if (resetTimerInterval) clearInterval(resetTimerInterval);
+                            startResetTimer(600);
+                            showForgotMessage('Код отправлен повторно', 'success');
+                            resendBtn.textContent = originalText;
+                            resendBtn.disabled = false;
+                            resendBtn.style.opacity = '1';
+                        } else {
+                            showForgotMessage(result.message, 'error');
+                            resendBtn.textContent = originalText;
+                            resendBtn.disabled = false;
+                            resendBtn.style.opacity = '1';
+                        }
+                    } catch (error) {
+                        showForgotMessage('Не удалось отправить код', 'error');
+                        resendBtn.textContent = originalText;
+                        resendBtn.disabled = false;
+                        resendBtn.style.opacity = '1';
+                    }
+                }
+
+                function startResetTimer(seconds) {
+                    const timer = document.getElementById('resetTimer');
+                    if (!timer) return;
+                    if (resetTimerInterval) clearInterval(resetTimerInterval);
+                    let remaining = seconds;
+                    resetTimerInterval = setInterval(() => {
+                        const minutes = Math.floor(remaining / 60);
+                        const secs = remaining % 60;
+                        timer.textContent = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                        if (remaining <= 0) {
+                            clearInterval(resetTimerInterval);
+                            timer.textContent = 'Код истек';
+                            timer.style.color = '#c62828';
+                        }
+                        remaining--;
+                    }, 1000);
+                }
+
+                window.onclick = function (event) {
+                    let modal = document.getElementById('forgotModal');
+                    if (event.target == modal) closeForgotModal();
+                }
+            </script>
+</body>
+
+</html>

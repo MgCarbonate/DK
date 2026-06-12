@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мероприятия</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" href="/img/logo-icon.jpg">
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+        <main>
+            <div class="events-block">
+                <div class="meropr-head">
+                    <img src="/img/garland.png" class="garland-img">
+                    <img src="/img/garland.png" class="garland-img">
+                </div>
+                <div class="meropr">
+                    <div class="meropr-zag-ev">
+                        <p>Наши мероприятия</p>
+                    </div>
+                    <div class="meropr-cards" id="eventsContainer">
+                        <!-- Карточки загружаются через JS -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <%- include('partials/footer') %>
+
+            <!-- Модальное окно -->
+            <div id="modal" class="modal">
+                <div class="modal-content">
+                    <span class="close" onclick="closeModal()">&times;</span>
+                    <div class="mvm">
+                        <div class="meropr-modal-wind">
+                            <div class="mwm-r" id="modalContent">
+                                <!-- Содержимое заполняется динамически -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                let currentEventCode = null;
+                let allEvents = [];
+                let scrollbarWidth = 0;
+
+                // Функция для получения ширины скроллбара
+                function getScrollbarWidth() {
+                    const div = document.createElement('div');
+                    div.style.overflow = 'scroll';
+                    div.style.width = '50px';
+                    div.style.height = '50px';
+                    document.body.appendChild(div);
+                    const width = div.offsetWidth - div.clientWidth;
+                    document.body.removeChild(div);
+                    return width;
+                }
+
+                async function loadEvents() {
+                    try {
+                        const res = await fetch('/api/events/all');
+                        const data = await res.json();
+                        if (data.success) {
+                            allEvents = data.events;
+                            renderEvents(allEvents);
+                        }
+                    } catch (error) {
+                        console.error('Ошибка загрузки:', error);
+                    }
+                }
+
+                function formatDateShort(dateStr) {
+                    const date = new Date(dateStr);
+                    return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+                }
+
+                function formatDateWithoutYear(dateStr) {
+                    const date = new Date(dateStr);
+                    return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+                }
+
+                function renderEvents(events) {
+                    const container = document.getElementById('eventsContainer');
+                    if (!container) return;
+
+                    if (!events || events.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; width: 100%; font-size: 24px; color: white; padding: 60px 0;">Мероприятий пока нет</p>';
+                        return;
+                    }
+
+                    container.innerHTML = events.map(event => `
+        <div class="meropr-card" style="background-image: url('${event.image || '/img/meropr-card-img.png'}'); background-size: cover; background-position: center;" onclick="openModal(${event.event_code})">
+            <div class="glow-overlay"></div>
+            <div class="card-effect">
+                <div class="meropr-card-info">
+                    <div class="meropr-opis">
+                        <p class="meropr-card-name">${escapeHtml(event.title_short)}</p>
+                        <p class="meropr-card-razd">${escapeHtml(event.event_type)}</p>
+                    </div>
+                    <div class="memchik">
+                        <p class="date-time">${formatDateShort(event.date)} ${event.time}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+                }
+
+                function escapeHtml(str) {
+                    if (!str) return '';
+                    return str.replace(/[&<>]/g, function (m) {
+                        if (m === '&') return '&amp;';
+                        if (m === '<') return '&lt;';
+                        if (m === '>') return '&gt;';
+                        return m;
+                    });
+                }
+
+                async function openModal(eventCode) {
+                    currentEventCode = eventCode;
+                    const event = allEvents.find(e => e.event_code === eventCode);
+                    if (!event) return;
+
+                    const isAdmin = <%= user && user.is_admin ? 'true' : 'false' %>;
+
+                    // Сохраняем ширину скроллбара и добавляем padding
+                    scrollbarWidth = getScrollbarWidth();
+                    document.body.style.paddingRight = scrollbarWidth + 'px';
+                    document.body.classList.add('modal-open');
+
+                    const modalContent = document.getElementById('modalContent');
+                    modalContent.innerHTML = `
+                    <div class="mwm-r-t">
+                        <div class="mvm-r-t-t">
+                            <p class="mvm-r-t-t-name">${escapeHtml(event.title_full)}</p>
+                            <p class="mvm-r-t-t-opis">${escapeHtml(event.event_type)}</p>
+                        </div>
+                        <div class="mvm-r-t-b">
+                            <p class="mvm-r-t-t-opis"><span>Куратор:</span> ${escapeHtml(event.curator)}</p>
+                            <p class="mvm-r-t-t-opis">${formatDateWithoutYear(event.date)} <span>${event.time}</span></p>
+                        </div>
+                    </div>
+                    <div class="mwm-txt">
+    <p>${escapeHtml(event.description || 'Описание отсутствует').replace(/\n/g, '<br>')}</p>
+</div>
+                    <div class="mwm-r-b">
+                        <hr class="mvm-line">
+                        <div class="mvm-underline">
+                            <div class="tick-cost">
+                                <div class="t-c">
+                                    <p class="t-c-name">Осталось мест</p>
+                                    <p class="t-c-opis">${event.available_seats} из ${event.total_seats}</p>
+                                </div>
+                                <div class="t-c">
+                                    <p class="t-c-name">Стоимость</p>
+                                    <p class="t-c-opis">${event.price}₽</p>
+                                </div>
+                            </div>
+                            <button class="mvm-btn" ${isAdmin ? 'disabled style="opacity: 0.5; cursor: not-allowed; background-color: #aaa;"' : 'onclick="goToBuyTicket()"'}>Хочу пойти</button>
+                        </div>
+                    </div>
+                `;
+
+                    let modal = document.getElementById('modal');
+                    modal.classList.remove('closing');
+                    modal.classList.add('show');
+                }
+
+                function closeModal() {
+                    let modal = document.getElementById('modal');
+                    modal.classList.add('closing');
+                    setTimeout(() => {
+                        modal.classList.remove('show', 'closing');
+                        document.body.style.paddingRight = '';
+                        document.body.classList.remove('modal-open');
+                    }, 300);
+                }
+
+                function goToBuyTicket() {
+                    // Проверяем, есть ли уже это мероприятие в корзине
+                    const savedCart = sessionStorage.getItem('cart');
+                    let cart = savedCart ? JSON.parse(savedCart) : [];
+                    const existingItem = cart.find(item => item.event_code === currentEventCode);
+
+                    if (existingItem) {
+                        // Если уже есть - увеличиваем количество на 1
+                        existingItem.quantity += 1;
+                        sessionStorage.setItem('cart', JSON.stringify(cart));
+                        // Обновляем счетчик на кнопке
+                        if (window.updateCartFlyCount) window.updateCartFlyCount();
+                        // Показываем уведомление
+                        showToast('Количество билетов увеличено', 'success');
+                        // Остаемся на той же странице или переходим в корзину - на ваше усмотрение
+                        // window.location.href = '/buy-ticket';
+                    } else {
+                        // Если нет - переходим на страницу корзины с параметром
+                        window.location.href = `/buy-ticket/add?event=${currentEventCode}`;
+                    }
+                }
+
+                function showToast(message, type) {
+                    const toast = document.createElement('div');
+                    toast.className = `toast-notification ${type}`;
+                    toast.textContent = message;
+                    document.body.appendChild(toast);
+                    setTimeout(() => {
+                        toast.classList.add('fade-out');
+                        setTimeout(() => toast.remove(), 300);
+                    }, 3000);
+                }
+
+                window.onclick = function (event) {
+                    let modal = document.getElementById('modal');
+                    if (event.target == modal) {
+                        closeModal();
+                    }
+                }
+
+
+
+                document.querySelectorAll('.garland-wrapper').forEach(el => {
+                    el.addEventListener('mousemove', (e) => {
+                        const rect = el.getBoundingClientRect();
+                        const x = ((e.clientX - rect.left) / rect.width) * 100;
+                        const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+                        el.style.setProperty('--x', x + '%');
+                        el.style.setProperty('--y', y + '%');
+                    });
+                });
+
+                loadEvents();
+            </script>
+</body>
+
+</html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" href="/img/logo-icon.jpg">
+</head>
+
+<body>
+    <%- include('partials/header', { hideBanner: true }) %>
+
+        <main>
+            <div class="auth-reg">
+                <div class="auth-reg-info">
+                    <form id="registrationForm" class="auth-reg-form">
+                        <p class="auth-zag">Регистрация</p>
+                        <div class="auth-inputs">
+                            <input type="text" name="full_name" id="regFullName" class="reg-field" placeholder="ФИО"
+                                required onkeypress="return /[а-яА-ЯёЁa-zA-Z\s\-]/i.test(event.key)">
+                            <input type="email" name="email" id="regEmail" class="reg-field" placeholder="Почта"
+                                required>
+                            <input type="password" name="password" id="regPassword" class="reg-field"
+                                placeholder="Пароль" required>
+                            <input type="password" name="confirm_password" id="regConfirmPassword" class="reg-field"
+                                placeholder="Подтверждение пароля" required>
+                        </div>
+                        <button type="submit" id="registerBtn" class="auth-button">
+                            <p>Создать аккаунт</p>
+                        </button>
+                        <a href="/login" class="no-acc">У меня есть аккаунт</a>
+                    </form>
+                </div>
+            </div>
+        </main>
+
+        <%- include('partials/footer') %>
+
+            <script>
+                function showToast(message, type) {
+                    const existingToast = document.querySelector('.toast-notification');
+                    if (existingToast) existingToast.remove();
+
+                    const toast = document.createElement('div');
+                    toast.className = `toast-notification ${type}`;
+                    toast.textContent = message;
+                    document.body.appendChild(toast);
+
+                    setTimeout(() => {
+                        toast.classList.add('fade-out');
+                        setTimeout(() => toast.remove(), 300);
+                    }, 3000);
+                }
+
+                function validateFullName(fullName) {
+                    const trimmed = fullName.trim();
+                    if (!trimmed) {
+                        return { valid: false, message: 'Введите ФИО' };
+                    }
+                    // Проверка на цифры
+                    if (/\d/.test(trimmed)) {
+                        return { valid: false, message: 'ФИО не должно содержать цифры' };
+                    }
+                    const words = trimmed.split(/\s+/);
+                    if (words.length < 3) {
+                        return { valid: false, message: 'ФИО должно содержать минимум 3 слова' };
+                    }
+                    for (let i = 0; i < words.length; i++) {
+                        const word = words[i];
+                        if (word.length < 2) {
+                            return { valid: false, message: `Слово "${word}" слишком короткое (минимум 2 символа)` };
+                        }
+                        if (!/^[А-Яа-яЁёA-Za-z\-]+$/.test(word)) {
+                            return { valid: false, message: `Слово "${word}" содержит недопустимые символы. Используйте только буквы` };
+                        }
+                    }
+                    return { valid: true, message: '' };
+                }
+
+                document.getElementById('registrationForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    const full_name = document.getElementById('regFullName').value;
+
+                    // ВАЛИДАЦИЯ ФИО
+                    const validation = validateFullName(full_name);
+                    if (!validation.valid) {
+                        showToast(validation.message, 'error');
+                        return;
+                    }
+
+                    const email = document.getElementById('regEmail').value;
+                    const password = document.getElementById('regPassword').value;
+                    const confirm_password = document.getElementById('regConfirmPassword').value;
+
+                    // Меняем кнопку
+                    const submitBtn = document.getElementById('registerBtn');
+                    const originalText = submitBtn.querySelector('p').textContent;
+                    submitBtn.querySelector('p').textContent = 'Отправка кода...';
+                    submitBtn.disabled = true;
+                    submitBtn.style.opacity = '0.7';
+
+                    try {
+                        const response = await fetch('/auth/register', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ full_name, email, password, confirm_password })
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            showVerificationModal(result.email);
+                            document.getElementById('registrationForm').reset();
+                        } else {
+                            showToast(result.message, 'error');
+                            // Возвращаем кнопку обратно
+                            submitBtn.querySelector('p').textContent = originalText;
+                            submitBtn.disabled = false;
+                            submitBtn.style.opacity = '1';
+                        }
+                    } catch (error) {
+                        showToast('Произошла ошибка. Попробуйте позже.', 'error');
+                        submitBtn.querySelector('p').textContent = originalText;
+                        submitBtn.disabled = false;
+                        submitBtn.style.opacity = '1';
+                    }
+                });
+
+                function showVerificationModal(email) {
+                    const existingModal = document.getElementById('verificationModal');
+                    if (existingModal) existingModal.remove();
+
+                    const modalHTML = `
+                    <div id="verificationModal" class="modal">
+                        <div class="modal-content profile-modal" style="max-width: 450px;">
+                            <span class="close" onclick="closeModal()">&times;</span>
+                            <h3 class="cards-title">Подтверждение email</h3>
+                            <p style="color: #80191B; margin-bottom: 20px; text-align: center;">
+                                Код отправлен на <strong>${email}</strong>
+                            </p>
+                            <input type="text" id="verificationCode" class="profile-input" placeholder="Код из письма" maxlength="6" autofocus>
+                            <button onclick="verifyCode('${email}')" class="profile-save-btn">Подтвердить</button>
+                            <button onclick="resendCode('${email}')" class="resend-code-btn">Отправить повторно</button>
+                            <div id="timer" class="timer">10:00</div>
+                        </div>
+                    </div>
+                `;
+
+                    document.body.insertAdjacentHTML('beforeend', modalHTML);
+                    openModal('verificationModal');
+                    startTimer(600);
+                }
+
+                function openModal(modalId) {
+                    const modal = document.getElementById(modalId);
+                    if (modal) {
+                        modal.classList.remove('closing');
+                        modal.classList.add('show');
+                        document.body.classList.add('modal-open');
+                    }
+                }
+
+                function closeModal() {
+                    const modal = document.getElementById('verificationModal');
+                    if (modal) {
+                        modal.classList.add('closing');
+                        setTimeout(() => {
+                            modal.remove();
+                            document.body.classList.remove('modal-open');
+                        }, 300);
+                    }
+                }
+
+                let timerInterval = null;
+
+                function startTimer(seconds) {
+                    const timerElement = document.getElementById('timer');
+                    if (!timerElement) return;
+                    if (timerInterval) clearInterval(timerInterval);
+                    let remaining = seconds;
+                    timerInterval = setInterval(() => {
+                        const minutes = Math.floor(remaining / 60);
+                        const secs = remaining % 60;
+                        timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                        if (remaining <= 0) {
+                            clearInterval(timerInterval);
+                            timerElement.textContent = 'Код истек';
+                            timerElement.style.color = '#c62828';
+                        }
+                        remaining--;
+                    }, 1000);
+                }
+
+                function showModalMessage(message, type) {
+                    const msgDiv = document.getElementById('modalMessage');
+                    if (msgDiv) {
+                        msgDiv.textContent = message;
+                        msgDiv.className = `modal-message ${type}`;
+                        msgDiv.style.display = 'block';
+                        setTimeout(() => {
+                            msgDiv.style.display = 'none';
+                        }, 3000);
+                    } else {
+                        showToast(message, type);
+                    }
+                }
+
+                async function verifyCode(email) {
+                    const code = document.getElementById('verificationCode').value;
+                    if (!code || code.length !== 6) {
+                        showModalMessage('Введите 6-значный код', 'error');
+                        return;
+                    }
+                    try {
+                        const response = await fetch('/auth/verify-code', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email, code })
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            showModalMessage(result.message, 'success');
+                            setTimeout(() => {
+                                window.location.href = result.redirect;
+                            }, 1500);
+                        } else {
+                            showModalMessage(result.message, 'error');
+                        }
+                    } catch (error) {
+                        showModalMessage('Ошибка', 'error');
+                    }
+                }
+
+                async function resendCode(email) {
+                    // Меняем кнопку
+                    const resendBtn = document.querySelector('#verificationModal .resend-code-btn');
+                    const originalText = resendBtn.textContent;
+                    resendBtn.textContent = 'Отправка...';
+                    resendBtn.disabled = true;
+                    resendBtn.style.opacity = '0.7';
+
+                    try {
+                        const response = await fetch('/auth/resend-code', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email })
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            if (timerInterval) clearInterval(timerInterval);
+                            startTimer(600);
+                            showModalMessage(result.message, 'success');
+                            resendBtn.textContent = originalText;
+                            resendBtn.disabled = false;
+                            resendBtn.style.opacity = '1';
+                        } else {
+                            showModalMessage(result.message, 'error');
+                            resendBtn.textContent = originalText;
+                            resendBtn.disabled = false;
+                            resendBtn.style.opacity = '1';
+                        }
+                    } catch (error) {
+                        showModalMessage('Не удалось отправить код', 'error');
+                        resendBtn.textContent = originalText;
+                        resendBtn.disabled = false;
+                        resendBtn.style.opacity = '1';
+                    }
+                }
+            </script>
+</body>
+
+</html>

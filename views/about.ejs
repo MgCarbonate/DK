@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>О нас - Дом Культур</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" href="/img/logo-icon.jpg">
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+        <main>
+            <div class="about-banner">
+                <div class="ab-ban-info">
+                    <div class="a-b-i-t">
+                        <img src="/img/sotrud-logo.svg" alt="" loading="lazy">
+                        <p id="bannerText">проект, который объединяет людей через события, атмосферу и живые эмоции</p>
+                    </div>
+                    <img id="bannerImage" src="/img/about-banner.png" loading="lazy" alt="" class="a-b-img">
+                </div>
+            </div>
+
+            <div class="about-txt-block">
+                <div class="a-t-b-info">
+                    <div class="a-t-b-left">
+                        <p>Мы создаём мероприятия, которые выходят за рамки обычного досуга: лекции, мастер-классы и
+                            обсуждения, где важен не только формат, но и ощущение, которое остаётся после.</p>
+                        <img src="/img/about-spark.svg" alt="" loading="lazy">
+                    </div>
+                    <div class="a-t-b-right">
+                        <p>Для нас «Дом Культур» — это не просто организация событий, а сообщество людей, которым близки
+                            движение, музыка, свобода самовыражения и живое общение. Мы делаем события, в которых
+                            хочется быть, а не просто присутствовать и создаём пространство, где каждый становится
+                            частью общего опыта.</p>
+                    </div>
+                </div>
+            </div>
+
+            <img src="/img/about-overlay.png" alt="" class="about-overlay" loading="lazy">
+
+            <div class="our-team-block">
+    <p class="o-t-b-zag">Наша гостеприимная команда</p>
+    <div class="o-t-b-employees" id="staffContainer">
+        <!-- Сотрудники загружаются динамически -->
+    </div>
+</div>
+
+            <div class="gall-spaces">
+                <div class="g-s-top">
+                    <p class="gall-spaces-zag">Галерея пространств</p>
+                </div>
+                <div class="g-s-imgs">
+                    <div class="g-s-i-one">
+                        <img src="/img/a-s-spark-one.png" alt="" class="a-s-sp" loading="lazy">
+                        <img src="/img/a-s-one.png" alt="" class="a-s-img" loading="lazy">
+                    </div>
+                    <div class="g-s-i-two">
+                        <img src="/img/a-s-two.png" alt="" class="a-s-img" loading="lazy">
+                        <img src="/img/a-s-three.png" alt="" class="a-s-img" loading="lazy">
+                    </div>
+                    <div class="g-s-i-two">
+                        <img src="/img/a-s-four.png" alt="" class="a-s-img" loading="lazy">
+                        <img src="/img/a-s-five.png" alt="" class="a-s-img" loading="lazy">
+                    </div>
+                    <div class="g-s-i-one">
+                        <img src="/img/a-s-six.png" alt="" class="a-s-img" loading="lazy">
+                        <img src="/img/a-s-spark-two.png" alt="" class="a-s-sp" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <img src="/img/about-lights.png" alt="" class="about-overlay-light" loading="lazy">
+        </main>
+
+        <%- include('partials/footer') %>
+
+        <script>
+    async function loadStaffForAbout() {
+        try {
+            // Правильный URL - без /admin
+            const res = await fetch('/api/about/staff');
+            const data = await res.json();
+            if (data.success && data.staff) {
+                renderStaffOnAbout(data.staff);
+            } else {
+                console.error('Нет данных о сотрудниках');
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки сотрудников:', error);
+        }
+    }
+    
+    async function loadAboutSettings() {
+        try {
+            const res = await fetch('/api/about/settings');
+            const data = await res.json();
+            if (data.success) {
+                if (data.bannerImage) {
+                    document.getElementById('bannerImage').src = data.bannerImage;
+                }
+                if (data.bannerText) {
+                    document.getElementById('bannerText').textContent = data.bannerText;
+                }
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки настроек:', error);
+        }
+    }
+    
+    function renderStaffOnAbout(staff) {
+        const container = document.getElementById('staffContainer');
+        if (!container) return;
+        
+        if (staff.length === 0) {
+            container.innerHTML = '<p style="text-align: center; width: 100%;">Сотрудники будут добавлены скоро</p>';
+            return;
+        }
+        
+        let html = '';
+        
+        staff.forEach(member => {
+            html += `
+                <div class="o-t-b-empl" style="background-image: url('${member.photo}'); background-size: cover; background-position: center;">
+                    <div class="card-effect">
+                        <div class="o-t-b-e-info">
+                            <p class="o-t-b-e-i-name">${escapeHtml(member.name)}</p>
+                            <p class="o-t-b-e-i-job">${escapeHtml(member.position)}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        // Добавляем текстовый блок
+        html += `
+            <div class="empl-block-txt">
+                <p class="e-b-t-top">Наша команда — люди, объединённые идеей создавать события с атмосферой,
+                    <br>в которых важны эмоции, ощущения <br>и живое взаимодействие</p>
+                <p class="e-b-t-bot">Мы уделяем внимание каждой детали <br>и подходим к работе с
+                    ответственностью <br>и усердием, чтобы каждое мероприятие проходило на высшем уровне</p>
+            </div>
+        `;
+        
+        container.innerHTML = html;
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    // Загружаем данные при загрузке страницы
+    document.addEventListener('DOMContentLoaded', () => {
+        loadStaffForAbout();
+        loadAboutSettings();
+    });
+</script>
+</body>
+
+</html>

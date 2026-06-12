@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель - Управление мероприятиями</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" href="/img/logo-icon.jpg">
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+        <main>
+            <div class="adminstat">
+                <div class="admin-left">
+                    <div class="admin-menu-item <%= adminPage === 'statistics' ? 'active' : '' %>" id="navStatistics">
+                        <p>Статистика</p>
+                    </div>
+                    <div class="admin-menu-item <%= adminPage === 'users' ? 'active' : '' %>" id="navUsers">
+                        <p>Пользователи</p>
+                    </div>
+                    <div class="admin-menu-item">
+                        <p>Мероприятия</p>
+                    </div>
+                    <div class="admin-submenu">
+                        <p class="admin-m-txt <%= adminPage === 'events' ? 'admin-m-txt-active' : '' %>"
+                            id="navEventsManage">Управление</p>
+                        <p class="admin-m-txt <%= adminPage === 'events-stats' ? 'admin-m-txt-active' : '' %>"
+                            id="navEventsStats">Статистика</p>
+                    </div>
+                    <div class="admin-menu-item <%= adminPage === 'sotrud' ? 'active' : '' %>" id="navSotrud">
+                        <p>Сотрудничество</p>
+                    </div>
+                    <div class="admin-menu-item <%= adminPage === 'about' ? 'active' : '' %>" id="navAbout">
+    <p>О нас</p>
+</div>
+                </div>
+                <div class="admin-right">
+                    <div id="last-acts">
+                        <p class="last-p">Управление мероприятиями</p>
+
+                        <p id="a-m-m-edit-zag">Добавить мероприятие</p>
+                        <div class="add-meropr-form">
+                            <div class="row row-3">
+                                <input class="field" id="title_full" placeholder="Полное наименование">
+                                <input class="field" id="title_short" placeholder="Короткое наименование">
+                                <input class="field" id="curator" placeholder="Куратор">
+                            </div>
+                            <div class="row row-4">
+                                <input class="field" id="date" type="date" placeholder="Дата">
+                                <input class="field" id="time" type="time" placeholder="Время">
+                                <input class="field" id="price" type="text" inputmode="numeric" placeholder="Стоимость">
+                                <input class="field" id="total_seats" type="text" inputmode="numeric"
+                                    placeholder="Количество мест">
+                            </div>
+                            <div class="row row-last">
+                                <textarea class="field textarea" id="description"
+                                    placeholder="Описание и дополнительная информация"></textarea>
+                                <div class="right">
+                                    <select class="field" id="event_type">
+                                        <option value="" disabled selected>Тип мероприятия</option>
+                                        <option value="Лекция">Лекция</option>
+                                        <option value="Мастер-класс">Мастер-класс</option>
+                                        <option value="Продленка">Продленка</option>
+                                        <option value="Книжный клуб">Книжный клуб</option>
+                                    </select>
+                                    <button class="upload" id="uploadBtn">Загрузить фото</button>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 20px; justify-content: center;">
+                                <button class="add-meropr-btn" id="submitBtn">Добавить</button>
+                                <button class="add-meropr-btn" id="clearBtn"
+                                    style="background-color: #80191B; color: #DAA655;">Очистить</button>
+                                <button class="add-meropr-btn" id="cancelBtn"
+                                    style="background-color: #80191B; color: white; display: none;">Отмена</button>
+                            </div>
+                            <div id="formMessage" class="modal-message" style="display: none;"></div>
+                        </div>
+
+                        <div style="display: flex; justify-content: flex-end;">
+                            <button id="archiveBtn" class="archive-btn-admin">Архив мероприятий</button>
+                        </div>
+                        <p id="a-m-m-edit-zag">Активные мероприятия</p>
+                        <input type="text" id="searchEvents" placeholder="Поиск..." class="search-meropr">
+                        <div class="admin-m-cards" id="eventsContainer"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Модальное окно для просмотра мероприятия -->
+        <div id="eventModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeEventModal()">&times;</span>
+                <div class="mvm">
+                    <div class="meropr-modal-wind">
+                        <div class="mwm-r" id="eventModalContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальное окно подтверждения удаления -->
+<div id="deleteConfirmModal" class="modal">
+    <div class="modal-content confirm-modal" style="width: 450px; max-width: 90%; text-align: center;">
+        <span class="close" onclick="closeDeleteConfirmModal()">&times;</span>
+        <h3 style="color: #80191B; margin-bottom: 20px;">⚠️ Подтверждение удаления</h3>
+        <div id="deleteConfirmMessage" style="margin-bottom: 25px; color: #80191B; line-height: 1.5; text-align: left;">
+            Вы уверены, что хотите удалить мероприятие?
+        </div>
+        <div style="display: flex; gap: 15px; justify-content: center;">
+            <button onclick="confirmDeleteEvent()" class="confirm-delete-btn" style="background-color: #80191B; color: white; padding: 10px 25px; border: none; border-radius: 15px; cursor: pointer;">Удалить</button>
+            <button onclick="closeDeleteConfirmModal()" style="background-color: #DAA655; color: #80191B; padding: 10px 25px; border: none; border-radius: 15px; cursor: pointer;">Отмена</button>
+        </div>
+    </div>
+</div>
+
+        <!-- Модальное окно подтверждения архивации -->
+        <div id="archiveConfirmModal" class="modal">
+            <div class="modal-content confirm-modal" style="width: 400px; max-width: 90%; text-align: center;">
+                <span class="close" onclick="closeArchiveConfirmModal()">&times;</span>
+                <h3 style="color: #80191B; margin-bottom: 20px;">Подтверждение архивации</h3>
+                <p style="margin-bottom: 20px;">Вы уверены, что хотите переместить это мероприятие в архив?</p>
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <button onclick="confirmArchiveEvent()"
+                        style="background-color: #DAA655; color: #80191B; padding: 10px 20px; border: none; border-radius: 15px; cursor: pointer;">Да,
+                        в архив</button>
+                    <button onclick="closeArchiveConfirmModal()"
+                        style="background-color: #80191B; color: white; padding: 10px 20px; border: none; border-radius: 15px; cursor: pointer;">Отмена</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальное окно архива -->
+        <div id="archiveModal" class="modal" onclick="closeArchiveModalOnOverlay(event)">
+            <div class="modal-content"
+                style="width: 900px; max-width: 90%; max-height: 80vh; display: flex; flex-direction: column; background: white; border-radius: 30px; overflow: hidden;">
+                <div style="padding: 20px 20px 10px 20px; border-bottom: 2px solid #DAA655; background: white;">
+                    <span class="close" onclick="closeArchiveModal()"
+                        style="float: right; font-size: 28px; cursor: pointer; margin-top: -5px;">&times;</span>
+                    <h3 style="color: #80191B; font-size: 24px; font-weight: 700; text-align: center; margin: 0;">Архив
+                        мероприятий</h3>
+                    <input type="text" id="archiveSearch" placeholder="Поиск по названию..."
+                        style="width: 100%; padding: 10px 15px; border: 2px solid #80191B; border-radius: 12px; font-size: 14px; margin-top: 15px; box-sizing: border-box;">
+                </div>
+                <div id="archivedEventsContainer"
+                    style="padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; align-content: flex-start;">
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let allEvents = [];
+            let activeEvents = [];
+            let archivedEvents = [];
+            let editMode = false;
+            let editEventCode = null;
+            let uploadedImagePath = null;
+            let eventToDelete = null;
+            let eventToArchive = null;
+let ticketsToRefund = 0;
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/[&<>]/g, function (m) {
+                    if (m === '&') return '&amp;';
+                    if (m === '<') return '&lt;';
+                    if (m === '>') return '&gt;';
+                    return m;
+                });
+            }
+
+            function showToastRight(message, type) {
+                const existingToast = document.querySelector('.toast-notification');
+                if (existingToast) existingToast.remove();
+
+                const toast = document.createElement('div');
+                toast.className = `toast-notification ${type}`;
+                toast.textContent = message;
+                document.body.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.classList.add('fade-out');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+
+            function showToast(message, type) {
+                showToastRight(message, type);
+            }
+
+            function isTwoHoursPassed(event) {
+                const now = new Date();
+                const [year, month, day] = event.date.split('T')[0].split('-');
+                const [hours, minutes] = event.time.split(':');
+                const eventDateTime = new Date(year, month - 1, day, parseInt(hours), parseInt(minutes), 0);
+                const expireTime = new Date(eventDateTime.getTime() + 2 * 60 * 60 * 1000);
+                return now > expireTime;
+            }
+
+            // Можно ли архивировать вручную
+            function canArchiveEvent(event) {
+                if (event.is_archived) return false;
+                return isTwoHoursPassed(event);
+            }
+
+            function formatDateShort(dateStr) {
+                const date = new Date(dateStr);
+                return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            }
+
+            async function loadEvents() {
+                try {
+                    const res = await fetch('/api/events/admin/all');
+                    const data = await res.json();
+                    if (data.success) {
+                        allEvents = data.events.map(event => ({
+                            ...event,
+                            event_code: Number(event.event_code),
+                            is_archived: event.is_archived || false
+                        }));
+
+                        // АКТИВНЫЕ: не в архиве
+                        activeEvents = allEvents.filter(event => !event.is_archived);
+
+                        // АРХИВНЫЕ: только те, у которых is_archived = true
+                        archivedEvents = allEvents.filter(event => event.is_archived === true);
+
+                        renderEvents(activeEvents);
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки:', error);
+                }
+            }
+
+            function renderEvents(events) {
+                const container = document.getElementById('eventsContainer');
+                if (!container) return;
+
+                if (events.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; width: 100%; color: #80191B; display:flex; margin-top: 10px; font-size: 28px; font-weight: 600; justify-content:center; ">Нет активных мероприятий</p>';
+                    return;
+                }
+
+                container.innerHTML = events.map(event => {
+                    const canArchive = canArchiveEvent(event);
+                    const now = new Date();
+                    const [year, month, day] = event.date.split('T')[0].split('-');
+                    const [hours, minutes] = event.time.split(':');
+                    const eventDateTime = new Date(year, month - 1, day, parseInt(hours), parseInt(minutes), 0);
+                    const expireTime = new Date(eventDateTime.getTime() + 2 * 60 * 60 * 1000);
+                    const minutesLeft = Math.ceil((expireTime - now) / (1000 * 60));
+
+                    return `
+            <div class="admin-m-card" data-event-code="${event.event_code}">
+                <div class="a-m-c-top">
+                    <div class="a-m-c-t-l">
+                        <p class="a-m-c-name">${escapeHtml(event.title_short)}</p>
+                        <p class="a-m-c-razd">${escapeHtml(event.event_type)}</p>
+                    </div>
+                    <div class="a-m-c-t-r">
+                        ${canArchive ?
+                            `<img src="/img/cross.svg" alt="Архивировать" style="cursor: pointer;" onclick="openArchiveConfirmModal('${event.event_code}')" title="Переместить в архив">` :
+                            `<span style="font-size: 12px; color: #999;" title="Архивация доступна через 2 часа с начала мероприятия">⏳ ${minutesLeft > 0 ? minutesLeft : 0} мин</span>`
+                        }
+                    </div>
+                </div>
+                <div class="a-m-c-bot">
+                    <div class="a-m-c-b-l">
+                        <div class="a-m-c-b-l-l">
+                            <p><span>Дата: </span>${formatDateShort(event.date)}</p>
+                            <p><span>Время:</span> ${event.time}</p>
+                        </div>
+                        <div class="a-m-c-b-l-l">
+                            <p><span>Билетов:</span> ${event.available_seats} из ${event.total_seats}</p>
+                            <p><span>Стоимость:</span> ${event.price}₽</p>
+                        </div>
+                    </div>
+                    <div class="a-m-c-b-r">
+    <button onclick="openEventModal('${event.event_code}')">Открыть</button>
+    <button onclick="editEvent('${event.event_code}')">Изменить</button>
+    <button onclick="openDeleteConfirmModal('${event.event_code}')" style="background-color: #80191B; color: white;">Удалить</button>
+</div>
+                </div>
+            </div>
+        `;
+                }).join('');
+            }
+
+            function renderArchivedEvents(events) {
+                const container = document.getElementById('archivedEventsContainer');
+                if (!container) return;
+
+                if (events.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; width: 100%;">Нет архивных мероприятий</p>';
+                    return;
+                }
+
+                container.innerHTML = events.map(event => `
+        <div class="admin-m-card" style="opacity: 0.8; background: #f9f9f9;" data-event-code="${event.event_code}">
+            <div class="a-m-c-top">
+                <div class="a-m-c-t-l">
+                    <p class="a-m-c-name">${escapeHtml(event.title_short)}</p>
+                    <p class="a-m-c-razd">${escapeHtml(event.event_type)}</p>
+                </div>
+            </div>
+            <div class="a-m-c-bot">
+                <div class="a-m-c-b-l">
+                    <div class="a-m-c-b-l-l">
+                        <p><span>Дата: </span>${formatDateShort(event.date)}</p>
+                        <p><span>Время:</span> ${event.time}</p>
+                    </div>
+                    <div class="a-m-c-b-l-l">
+                        <p><span>Билетов продано:</span> ${event.total_seats - event.available_seats} из ${event.total_seats}</p>
+                        <p><span>Стоимость:</span> ${event.price}₽</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+            }
+
+            async function archiveEvent(eventCode) {
+                try {
+                    const res = await fetch(`/api/events/archive/${eventCode}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        showToastRight('Мероприятие перемещено в архив', 'success');
+                        loadEvents(); // Перезагружаем - мероприятие пропадет из активных
+                        closeArchiveConfirmModal();
+                    } else {
+                        showToastRight(data.message || 'Ошибка при архивации', 'error');
+                    }
+                } catch (error) {
+                    console.error('Ошибка архивации:', error);
+                    showToastRight('Ошибка сервера', 'error');
+                }
+            }
+
+
+            function openArchiveConfirmModal(eventCode) {
+                const event = allEvents.find(e => String(e.event_code) === String(eventCode));
+                if (!event) return;
+
+                if (!canArchiveEvent(event)) {
+                    showToastRight('Нельзя переместить в архив. Должно пройти 2 часа с начала мероприятия.', 'error');
+                    return;
+                }
+
+                eventToArchive = eventCode;
+                const modal = document.getElementById('archiveConfirmModal');
+                if (modal) {
+                    modal.classList.remove('closing');
+                    modal.classList.add('show');
+                    document.body.style.overflow = 'hidden';
+                }
+            }
+
+            function closeArchiveConfirmModal() {
+                const modal = document.getElementById('archiveConfirmModal');
+                if (modal) {
+                    modal.classList.add('closing');
+                    setTimeout(() => {
+                        modal.classList.remove('show', 'closing');
+                        document.body.style.overflow = '';
+                    }, 300);
+                }
+                eventToArchive = null;
+            }
+
+            async function confirmArchiveEvent() {
+                if (!eventToArchive) return;
+                await archiveEvent(eventToArchive);
+                closeArchiveConfirmModal();
+            }
+
+            document.getElementById('searchEvents')?.addEventListener('input', function (e) {
+                const query = e.target.value.toLowerCase();
+                const filtered = activeEvents.filter(event =>
+                    event.title_full.toLowerCase().includes(query) ||
+                    event.title_short.toLowerCase().includes(query) ||
+                    event.event_type.toLowerCase().includes(query)
+                );
+                renderEvents(filtered);
+            });
+
+            document.getElementById('archiveBtn').onclick = () => {
+                renderArchivedEvents(archivedEvents);
+                const modal = document.getElementById('archiveModal');
+                modal.classList.remove('closing');
+                modal.classList.add('show');
+                document.body.classList.add('modal-open');
+            }
+
+            document.getElementById('archiveSearch')?.addEventListener('input', function (e) {
+                const query = e.target.value.toLowerCase();
+                const filtered = archivedEvents.filter(event =>
+                    event.title_full.toLowerCase().includes(query) ||
+                    event.title_short.toLowerCase().includes(query)
+                );
+                renderArchivedEvents(filtered);
+            });
+
+            function closeArchiveModal() {
+                const modal = document.getElementById('archiveModal');
+                if (modal) {
+                    modal.classList.add('closing');
+                    setTimeout(() => {
+                        modal.classList.remove('show', 'closing');
+                        document.body.classList.remove('modal-open');
+                    }, 300);
+                }
+            }
+
+            function closeArchiveModalOnOverlay(event) {
+                if (event.target === document.getElementById('archiveModal')) {
+                    closeArchiveModal();
+                }
+            }
+
+            function resetUploadButton() {
+                const uploadBtn = document.getElementById('uploadBtn');
+                if (uploadBtn) {
+                    uploadBtn.textContent = 'Загрузить фото';
+                    uploadBtn.style.backgroundColor = '#DAA655';
+                    uploadBtn.style.color = '#80191B';
+                    uploadBtn.disabled = false;
+                }
+                uploadedImagePath = null;
+            }
+
+            function initUploadButton() {
+                const uploadBtn = document.getElementById('uploadBtn');
+                if (!uploadBtn) return;
+
+                const newBtn = uploadBtn.cloneNode(true);
+                uploadBtn.parentNode.replaceChild(newBtn, uploadBtn);
+
+                newBtn.onclick = function (e) {
+                    e.preventDefault();
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/jpeg,image/png,image/gif,image/webp';
+
+                    input.onchange = async function () {
+                        const file = input.files[0];
+                        if (!file) return;
+
+                        const formData = new FormData();
+                        formData.append('image', file);
+
+                        const btn = document.getElementById('uploadBtn');
+                        const originalText = btn.textContent;
+                        btn.textContent = 'Загрузка...';
+                        btn.disabled = true;
+
+                        try {
+                            const res = await fetch('/api/events/upload-image', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            const data = await res.json();
+                            if (data.success) {
+                                uploadedImagePath = data.imagePath;
+                                btn.textContent = 'Фото загружено ✓';
+                                btn.style.backgroundColor = '#80191B';
+                                btn.style.color = '#fff';
+                                showToastRight('Фото загружено!', 'success');
+                            } else {
+                                showToastRight(data.message || 'Ошибка загрузки', 'error');
+                                btn.textContent = originalText;
+                                btn.disabled = false;
+                                btn.style.backgroundColor = '#DAA655';
+                                btn.style.color = '#80191B';
+                            }
+                        } catch (error) {
+                            console.error('Ошибка загрузки:', error);
+                            showToastRight('Ошибка при загрузке', 'error');
+                            btn.textContent = originalText;
+                            btn.disabled = false;
+                            btn.style.backgroundColor = '#DAA655';
+                            btn.style.color = '#80191B';
+                        }
+                    };
+                    input.click();
+                };
+            }
+
+            function clearForm() {
+                document.getElementById('title_full').value = '';
+                document.getElementById('title_short').value = '';
+                document.getElementById('curator').value = '';
+                document.getElementById('date').value = '';
+                document.getElementById('time').value = '';
+                document.getElementById('price').value = '';
+                document.getElementById('total_seats').value = '';
+                document.getElementById('description').value = '';
+                document.getElementById('event_type').value = '';
+                resetUploadButton();
+                setTimeout(() => initUploadButton(), 50);
+            }
+
+            function cancelEdit() {
+                editMode = false;
+                editEventCode = null;
+                clearForm();
+                document.getElementById('a-m-m-edit-zag').textContent = 'Добавить мероприятие';
+                document.getElementById('submitBtn').textContent = 'Добавить';
+                document.getElementById('cancelBtn').style.display = 'none';
+            }
+
+            document.getElementById('clearBtn').onclick = clearForm;
+            document.getElementById('cancelBtn').onclick = cancelEdit;
+
+            document.getElementById('submitBtn').onclick = async function () {
+                const title_full = document.getElementById('title_full').value;
+                const title_short = document.getElementById('title_short').value;
+                const curator = document.getElementById('curator').value;
+                const event_type = document.getElementById('event_type').value;
+                const date = document.getElementById('date').value;
+                const time = document.getElementById('time').value;
+                const price = document.getElementById('price').value;
+                const total_seats = document.getElementById('total_seats').value;
+                const description = document.getElementById('description').value;
+
+                if (!title_full || !title_short || !curator || !event_type || !date || !time || !price || !total_seats || !description) {
+                    showToastRight('Заполните все поля', 'error');
+                    return;
+                }
+
+                // Проверка, что дата и время не в прошлом
+                const selectedDateTime = new Date(date + 'T' + time);
+                const now = new Date();
+                if (selectedDateTime < now) {
+                    showToastRight('Нельзя создать мероприятие с датой и временем в прошлом', 'error');
+                    return;
+                }
+
+                const url = editMode ? `/api/events/${editEventCode}` : '/api/events';
+                const method = editMode ? 'PUT' : 'POST';
+
+                try {
+                    const res = await fetch(url, {
+                        method: method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            title_full, title_short, curator, event_type, date, time, price, total_seats, description,
+                            image: uploadedImagePath || null
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToastRight(editMode ? 'Мероприятие обновлено!' : 'Мероприятие добавлено!', 'success');
+                        cancelEdit();
+                        loadEvents();
+                        setTimeout(() => initUploadButton(), 100);
+                    } else {
+                        showToastRight(data.message || 'Ошибка', 'error');
+                    }
+                } catch (error) {
+                    showToastRight('Ошибка сервера', 'error');
+                }
+            };
+
+            function editEvent(eventCode) {
+                const event = allEvents.find(e => String(e.event_code) === String(eventCode));
+                if (!event) return;
+
+                editMode = true;
+                editEventCode = eventCode;
+
+                document.getElementById('title_full').value = event.title_full;
+                document.getElementById('title_short').value = event.title_short;
+                document.getElementById('curator').value = event.curator || '';
+                document.getElementById('event_type').value = event.event_type;
+                document.getElementById('date').value = event.date.split('T')[0];
+                document.getElementById('time').value = event.time;
+                document.getElementById('price').value = event.price;
+                document.getElementById('total_seats').value = event.total_seats;
+                document.getElementById('description').value = event.description || '';
+                uploadedImagePath = event.image || null;
+
+                setTimeout(() => {
+                    initUploadButton();
+                    const uploadBtn = document.getElementById('uploadBtn');
+                    if (uploadedImagePath) {
+                        uploadBtn.textContent = 'Фото загружено ✓';
+                        uploadBtn.style.backgroundColor = '#80191B';
+                        uploadBtn.style.color = '#fff';
+                    } else {
+                        uploadBtn.textContent = 'Загрузить фото';
+                        uploadBtn.style.backgroundColor = '#DAA655';
+                        uploadBtn.style.color = '#80191B';
+                    }
+                }, 50);
+
+                document.getElementById('a-m-m-edit-zag').textContent = 'Редактировать мероприятие';
+                document.getElementById('submitBtn').textContent = 'Сохранить';
+                document.getElementById('cancelBtn').style.display = 'block';
+                document.querySelector('.add-meropr-form').scrollIntoView({ behavior: 'smooth' });
+            }
+
+            function openEventModal(eventCode) {
+                const event = allEvents.find(e => String(e.event_code) === String(eventCode));
+                if (!event) return;
+
+                const modalContent = document.getElementById('eventModalContent');
+                const formattedDate = formatDateShort(event.date);
+
+                modalContent.innerHTML = `
+                    <div class="mwm-r-t">
+                        <div class="mvm-r-t-t">
+                            <p class="mvm-r-t-t-name">${escapeHtml(event.title_full)}</p>
+                            <p class="mvm-r-t-t-opis">${escapeHtml(event.event_type)}</p>
+                        </div>
+                        <div class="mvm-r-t-b">
+                            <p class="mvm-r-t-t-opis"><span>Куратор:</span> ${escapeHtml(event.curator || '—')}</p>
+                            <p class="mvm-r-t-t-opis">${formattedDate} <span>${event.time}</span></p>
+                        </div>
+                    </div>
+                    <div class="mwm-txt">
+                        <p>${escapeHtml(event.description || 'Описание отсутствует').replace(/\n/g, '<br>')}</p>
+                    </div>
+                    <div class="mwm-r-b">
+                        <hr class="mvm-line">
+                        <div class="mvm-underline">
+                            <div class="tick-cost">
+                                <div class="t-c">
+                                    <p class="t-c-name">Осталось мест</p>
+                                    <p class="t-c-opis">${event.available_seats} из ${event.total_seats}</p>
+                                </div>
+                                <div class="t-c">
+                                    <p class="t-c-name">Стоимость</p>
+                                    <p class="t-c-opis">${event.price}₽</p>
+                                </div>
+                            </div>
+                            <button class="mvm-btn" disabled style="opacity: 0.5; cursor: not-allowed; background-color: #aaa;">Хочу пойти</button>
+                        </div>
+                    </div>
+                `;
+
+                const modal = document.getElementById('eventModal');
+                modal.classList.remove('closing');
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeEventModal() {
+                const modal = document.getElementById('eventModal');
+                if (modal) {
+                    modal.classList.add('closing');
+                    setTimeout(() => {
+                        modal.classList.remove('show', 'closing');
+                        document.body.style.overflow = '';
+                    }, 300);
+                }
+            }
+
+            function openDeleteConfirmModal(eventCode) {
+    const event = allEvents.find(e => String(e.event_code) === String(eventCode));
+    if (!event) return;
+    
+    eventToDelete = eventCode;
+    
+    // Проверяем, есть ли купленные билеты
+    const hasTickets = (event.total_seats - event.available_seats) > 0;
+    const ticketsSold = event.total_seats - event.available_seats;
+    
+    const modal = document.getElementById('deleteConfirmModal');
+    const messageElement = document.getElementById('deleteConfirmMessage');
+    
+    if (hasTickets) {
+        messageElement.innerHTML = `⚠️ ВНИМАНИЕ! На это мероприятие продано ${ticketsSold} билетов.<br><br>
+        При удалении мероприятия:<br>
+        • Все билеты будут аннулированы<br>
+        • Пользователям придут уведомления<br>
+        • Средства будут возвращены на карты в течение суток<br><br>
+        Вы уверены, что хотите удалить мероприятие?`;
+    } else {
+        messageElement.innerHTML = `Вы уверены, что хотите удалить мероприятие "${event.title_short}"?<br><br>
+        Это действие нельзя отменить.`;
+    }
+    
+    modal.classList.remove('closing');
+    modal.classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeDeleteConfirmModal() {
+    const modal = document.getElementById('deleteConfirmModal');
+    if (modal) {
+        modal.classList.add('closing');
+        setTimeout(() => {
+            modal.classList.remove('show', 'closing');
+            document.body.style.overflow = '';
+        }, 300);
+    }
+    eventToDelete = null;
+}
+
+            function closeDeleteConfirmModal() {
+                const modal = document.getElementById('deleteConfirmModal');
+                if (modal) {
+                    modal.classList.add('closing');
+                    setTimeout(() => {
+                        modal.classList.remove('show', 'closing');
+                        document.body.style.overflow = '';
+                    }, 300);
+                }
+                eventToDelete = null;
+            }
+
+            // В функции confirmDeleteEvent обновите сообщение об успехе
+async function confirmDeleteEvent() {
+    if (!eventToDelete) return;
+    
+    const confirmBtn = document.querySelector('#deleteConfirmModal .confirm-delete-btn');
+    const originalText = confirmBtn?.textContent;
+    
+    if (confirmBtn) {
+        confirmBtn.textContent = 'Удаление...';
+        confirmBtn.disabled = true;
+    }
+    
+    try {
+        const res = await fetch(`/api/events/${eventToDelete}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            let message = '';
+            if (data.ticketsReturned > 0) {
+                message = `✅ Мероприятие удалено! Возвращено ${data.ticketsReturned} билет(ов). Уведомления отправлены ${data.usersNotified} пользователям.`;
+            } else {
+                message = `✅ Мероприятие удалено!`;
+            }
+            showToastRight(message, 'success');
+            closeDeleteConfirmModal();
+            loadEvents(); // Перезагружаем список
+        } else {
+            showToastRight(data.message || 'Ошибка при удалении', 'error');
+            closeDeleteConfirmModal();
+        }
+    } catch (error) {
+        console.error('Ошибка удаления:', error);
+        showToastRight('Ошибка сервера: ' + error.message, 'error');
+        closeDeleteConfirmModal();
+    } finally {
+        if (confirmBtn) {
+            confirmBtn.textContent = originalText;
+            confirmBtn.disabled = false;
+        }
+    }
+}
+
+            // Навигация
+            document.getElementById('navStatistics').onclick = () => window.location.href = '/admin/statistics';
+            document.getElementById('navUsers').onclick = () => window.location.href = '/admin/users';
+            document.getElementById('navEventsManage').onclick = () => window.location.href = '/admin/events';
+            document.getElementById('navEventsStats').onclick = () => window.location.href = '/admin/events-stats';
+            document.getElementById('navSotrud').onclick = () => window.location.href = '/admin/sotrud';
+
+            // Инициализация
+            document.addEventListener('DOMContentLoaded', function () {
+                initUploadButton();
+                loadEvents();
+            });
+
+            // Экспорт функций
+            window.openEventModal = openEventModal;
+            window.editEvent = editEvent;
+            window.openDeleteConfirmModal = openDeleteConfirmModal;
+            window.confirmDeleteEvent = confirmDeleteEvent;
+            window.closeEventModal = closeEventModal;
+            window.closeDeleteConfirmModal = closeDeleteConfirmModal;
+            window.closeArchiveModal = closeArchiveModal;
+            window.closeArchiveModalOnOverlay = closeArchiveModalOnOverlay;
+            window.openArchiveConfirmModal = openArchiveConfirmModal;
+            window.closeArchiveConfirmModal = closeArchiveConfirmModal;
+            window.confirmArchiveEvent = confirmArchiveEvent;
+            document.getElementById('navAbout').onclick = () => window.location.href = '/admin/about';
+        </script>
+
+        <script>
+    // Админ-панель бургер-меню (только для мобильных)
+    document.addEventListener('DOMContentLoaded', function() {
+        const adminLeft = document.querySelector('.admin-left');
+        if (adminLeft && window.innerWidth <= 768) {
+            // Добавляем класс для мобильной версии
+            adminLeft.classList.add('admin-left-mobile');
+            
+            // Добавляем бургер в админку, если его нет
+            const adminStat = document.querySelector('.adminstat');
+            if (adminStat && !document.querySelector('.admin-burger')) {
+                const burgerHtml = `
+                    <div class="admin-burger">
+                        <span class="admin-burger-title">Меню</span>
+                        <div class="admin-burger-btn">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                    <div class="admin-menu-overlay"></div>
+                `;
+                adminStat.insertAdjacentHTML('afterbegin', burgerHtml);
+                
+                const burgerBtn = document.querySelector('.admin-burger-btn');
+                const overlay = document.querySelector('.admin-menu-overlay');
+                
+                function toggleAdminMenu() {
+                    adminLeft.classList.toggle('active');
+                    burgerBtn.classList.toggle('active');
+                    overlay.classList.toggle('active');
+                    if (adminLeft.classList.contains('active')) {
+                        document.body.style.overflow = 'hidden';
+                    } else {
+                        document.body.style.overflow = '';
+                    }
+                }
+                
+                if (burgerBtn) {
+                    burgerBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        toggleAdminMenu();
+                    });
+                }
+                
+                if (overlay) {
+                    overlay.addEventListener('click', toggleAdminMenu);
+                }
+                
+                // Закрытие при клике на пункты меню
+                document.querySelectorAll('.admin-left .admin-menu-item, .admin-left .admin-m-txt').forEach(item => {
+                    item.addEventListener('click', () => {
+                        if (window.innerWidth <= 768) {
+                            toggleAdminMenu();
+                        }
+                    });
+                });
+            }
+        }
+    });
+
+    // Адаптация при изменении размера окна
+    window.addEventListener('resize', function() {
+        const nav = document.querySelector('.nav');
+        const burger = document.querySelector('.burger-menu');
+        const adminLeft = document.querySelector('.admin-left');
+        const overlay = document.querySelector('.admin-menu-overlay');
+        const burgerBtn = document.querySelector('.admin-burger-btn');
+        
+        if (window.innerWidth > 768) {
+            if (nav) nav.classList.remove('active');
+            if (burger) burger.classList.remove('active');
+            if (adminLeft) {
+                adminLeft.classList.remove('active');
+                // Убираем мобильные стили
+                adminLeft.style.left = '';
+                adminLeft.style.position = '';
+            }
+            if (overlay) overlay.classList.remove('active');
+            if (burgerBtn) burgerBtn.classList.remove('active');
+            document.body.style.overflow = '';
+        } else {
+            // Для мобильных - восстанавливаем
+            if (adminLeft) {
+                adminLeft.style.left = '';
+                adminLeft.style.position = 'fixed';
+            }
+        }
+    });
+</script>
+</body>
+
+</html>
