@@ -5732,6 +5732,10 @@ main {
         padding-right: 0 !important;
     }
 
+    .mvm-underline{
+        gap: 20px;
+    }
+
     /* ===== МОДАЛЬНЫЕ ОКНА ===== */
     .modal-content {
         width: 90% !important;
