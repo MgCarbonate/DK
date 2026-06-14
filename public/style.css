@@ -4415,7 +4415,7 @@ body.modal-open-spaces {
     margin-bottom: 15px;
 }
 
-.tg{
+.tg {
     margin-top: 4px;
 }
 
@@ -5024,8 +5024,10 @@ main {
         /* 1 карточка в строке */
     }
 }
+
 /* ========== МОБИЛЬНЫЙ АДАПТИВ (max-width: 425px) ========== */
 @media (max-width: 425px) {
+
     /* Общие настройки */
     body {
         overflow-x: hidden;
@@ -5059,6 +5061,10 @@ main {
 
     .logo {
         width: 50px;
+    }
+
+    .admin-m-card{
+        width: 100%;
     }
 
     /* Бургер-кнопка */
@@ -5103,7 +5109,7 @@ main {
         flex-direction: column;
         gap: 20px;
         padding: 80px 25px 30px;
-       
+
         transition: right 0.3s ease;
         z-index: 1000;
     }
@@ -5349,6 +5355,17 @@ main {
         font-size: 20px;
     }
 
+    body.notifications-open {
+        padding-right: 0px !important;
+    }
+
+
+    .buy-ticket-blok,
+    .b-t-blocks,
+    .empty-cart {
+        width: 100%;
+    }
+
     .m-d-b-l-t-razd {
         font-size: 16px;
     }
@@ -5365,8 +5382,9 @@ main {
         padding: 12px;
         font-size: 18px;
     }
-    
-    .m-d-b-l-b, .m-d-b-r{
+
+    .m-d-b-l-b,
+    .m-d-b-r {
         align-items: center;
     }
 
@@ -5601,7 +5619,7 @@ main {
         flex-direction: row;
     }
 
-    .cart-total{
+    .cart-total {
         margin-bottom: 0;
     }
 
@@ -5664,7 +5682,7 @@ main {
     .meowl p {
         font-size: 16px;
     }
-    
+
     .auth-reg-info {
         width: 100%;
         padding: 80px 16px;
@@ -5685,7 +5703,7 @@ main {
 
     .auth-zag {
         font-size: 36px;
-         text-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
     }
 
     .auth-button {
@@ -5699,8 +5717,8 @@ main {
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
     }
 
-    .forg-passw-container{
-        margin-left: 95px;  
+    .forg-passw-container {
+        margin-left: 95px;
     }
 
     .forg-passw,
@@ -5715,7 +5733,45 @@ main {
         width: 90% !important;
         max-width: 90% !important;
         margin: 0 auto;
-        box-sizing: border-box;
+        height: 1400px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 30px;
+        margin-bottom: 30px;
+    }
+
+    body.modal-open-spaces {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-self: center;
+    }
+
+    .spaces-modal-images {
+        width: 374px;
+        background-color: white;
+        border-radius: 30px;
+        margin-bottom: 30px;
+    }
+
+    .sotrud-form-two{
+        height: 51px;
+    }
+
+    .spaces-modal-inner {
+        height: 1327px;
+    }
+
+    .modal.show {
+        height: 100% !important;
+        justify-content: center;
+        align-items: start;
+    }
+
+    .spaces-modal-zag p {
+        font-size: 22px;
+        margin-top: 10px;
     }
 
     .profile-modal {
@@ -5752,16 +5808,17 @@ main {
         gap: 5px;
     }
 
-    .last-p{
+    .last-p {
         font-size: 24px;
     }
 
-    #a-m-m-edit-zag{
+    #a-m-m-edit-zag {
         font-size: 22px;
     }
 
-    .add-meropr-form input{
+    .add-meropr-form input {
         height: 50px;
+        width: 100%;
     }
 
     .mwm-txt {
@@ -5884,9 +5941,10 @@ main {
     }
 
 
-    .archived-list{
+    .archived-list {
         align-items: center;
     }
+
     /* Оверлей для меню */
     .admin-menu-overlay {
         position: fixed;
@@ -5955,23 +6013,24 @@ main {
         gap: 5px;
     }
 
-    .page-info{
+    .page-info {
         font-size: 16px;
     }
 
-    .last-acts p{
+    .last-acts p {
         font-size: 22px;
     }
 
-    .actions{
+    .actions {
         flex-direction: column;
     }
 
-    .last-acts input, #searchUsers{
-    border: 2px solid #80191B;
-    height: 40px;
-    font-size: 16px;
-}
+    .last-acts input,
+    #searchUsers {
+        border: 2px solid #80191B;
+        height: 40px;
+        font-size: 16px;
+    }
 
     .edit-users-btn,
     .delete-users-btn {
@@ -6023,9 +6082,13 @@ main {
         height: 100%;
     }
 
-    .sotrud-m-block p{
+    .sotrud-m-block p {
         font-size: 22px;
         margin: 0;
+    }
+
+    .sotr-m-c-block{
+        width: 100%;
     }
 
     .add-meropr-btn {
@@ -6046,10 +6109,9 @@ main {
         gap: 16px 0;
         flex-direction: column;
         flex-wrap: nowrap;
-        width: 392px;
+        width: 100%;
         align-items: center;
     }
-
 
     .a-m-c-name {
         font-size: 14px;
@@ -6107,11 +6169,12 @@ main {
         margin-left: 64px;
     }
 
-    .last-acts input, .sotrud-m-block input {
-    border: 2px solid #80191B;
-    height: 40px;
-    font-size: 16px;
-}
+    .last-acts input,
+    .sotrud-m-block input {
+        border: 2px solid #80191B;
+        height: 40px;
+        font-size: 16px;
+    }
 
     .sotrud-m-block>p {
         font-size: 20px;
@@ -6158,7 +6221,7 @@ main {
         font-size: 18px;
     }
 
-    .a-t-b-left img{
+    .a-t-b-left img {
         margin-top: 20px;
     }
 
@@ -6355,7 +6418,7 @@ main {
     .burger-menu {
         display: flex;
     }
-    
+
     .nav {
         position: fixed;
         top: 0;
@@ -6371,23 +6434,23 @@ main {
         z-index: 1000;
         margin: 0;
     }
-    
+
     .nav.active {
         right: 0;
     }
-    
+
     .nav a {
         padding: 15px 25px;
         border-bottom: 1px solid #eee;
         width: 100%;
         box-sizing: border-box;
     }
-    
+
     .nav a p {
         font-size: 18px;
         margin: 0;
     }
-    
+
     .nav a.active p::before {
         bottom: -2px;
     }
@@ -6407,11 +6470,11 @@ main {
         transition: left 0.3s ease;
         overflow-y: auto;
     }
-    
+
     .admin-left.active {
         left: 0;
     }
-    
+
     .admin-burger {
         display: flex;
         justify-content: space-between;
@@ -6424,13 +6487,13 @@ main {
         width: 100%;
         box-sizing: border-box;
     }
-    
+
     .admin-burger-title {
         color: white;
         font-size: 18px;
         font-weight: 700;
     }
-    
+
     .admin-burger-btn {
         display: flex;
         flex-direction: column;
@@ -6439,7 +6502,7 @@ main {
         height: 20px;
         cursor: pointer;
     }
-    
+
     .admin-burger-btn span {
         width: 100%;
         height: 3px;
@@ -6447,19 +6510,19 @@ main {
         border-radius: 3px;
         transition: all 0.3s ease;
     }
-    
+
     .admin-burger-btn.active span:nth-child(1) {
         transform: rotate(45deg) translate(6px, 5px);
     }
-    
+
     .admin-burger-btn.active span:nth-child(2) {
         opacity: 0;
     }
-    
+
     .admin-burger-btn.active span:nth-child(3) {
         transform: rotate(-45deg) translate(6px, -5px);
     }
-    
+
     .admin-menu-overlay {
         position: fixed;
         top: 0;
@@ -6470,16 +6533,16 @@ main {
         z-index: 999;
         display: none;
     }
-    
+
     .admin-menu-overlay.active {
         display: block;
     }
-    
+
     .adminstat {
         flex-direction: column;
         padding: 0;
     }
-    
+
     .admin-right {
         margin-top: 0;
         padding: 16px;
@@ -6490,6 +6553,7 @@ main {
 
 /* ========== ТОЛЬКО ДЛЯ НАВИГАЦИИ ========== */
 @media (max-width: 768px) {
+
     /* Бургер-кнопка */
     .burger-menu {
         display: flex !important;
@@ -6500,7 +6564,7 @@ main {
         cursor: pointer;
         margin-right: 10px;
     }
-    
+
     .burger-menu span {
         width: 100%;
         height: 3px;
@@ -6508,19 +6572,19 @@ main {
         border-radius: 3px;
         transition: all 0.3s ease;
     }
-    
+
     .burger-menu.active span:nth-child(1) {
         transform: rotate(45deg) translate(6px, 6px);
     }
-    
+
     .burger-menu.active span:nth-child(2) {
         opacity: 0;
     }
-    
+
     .burger-menu.active span:nth-child(3) {
         transform: rotate(-45deg) translate(6px, -6px);
     }
-    
+
     /* Меню выезжает СЛЕВА */
     .nav {
         position: fixed !important;
@@ -6538,23 +6602,23 @@ main {
         z-index: 1000 !important;
         display: flex !important;
     }
-    
+
     .nav.active {
         left: 0 !important;
     }
-    
+
     .nav a {
         padding: 15px 25px !important;
         border-bottom: 1px solid #eee !important;
         width: 100% !important;
         box-sizing: border-box;
     }
-    
+
     .nav a p {
         font-size: 18px !important;
         margin: 0 !important;
     }
-    
+
     /* Оверлей для затемнения */
     .nav-overlay {
         position: fixed;
@@ -6566,7 +6630,7 @@ main {
         z-index: 999;
         display: none;
     }
-    
+
     .nav-overlay.active {
         display: block;
     }
@@ -6583,98 +6647,98 @@ main {
     .buy-ticket-blok {
         padding: 0 12px !important;
     }
-    
+
     .b-t-zag {
         font-size: 22px !important;
         margin: 10px 0 15px !important;
     }
-    
+
     .b-t-block {
         flex-direction: column !important;
         gap: 8px !important;
         padding-bottom: 12px !important;
         margin-bottom: 12px !important;
     }
-    
+
     .b-t-block .meropr-card {
         width: 100% !important;
         height: 140px !important;
     }
-    
+
     .b-t-event-name {
         font-size: 15px !important;
     }
-    
+
     .b-t-event-razd {
         font-size: 11px !important;
     }
-    
+
     .b-t-name img {
         width: 18px !important;
         height: 18px !important;
     }
-    
+
     .mvm-r-t-b-dr {
         gap: 6px !important;
         margin: 3px 0 !important;
     }
-    
+
     .mvm-r-t-t-opis {
         font-size: 14px !important;
     }
-    
+
     .tick-cost {
         gap: 25px !important;
     }
-    
+
     .t-c-name {
         font-size: 12px !important;
     }
-    
+
     .t-c-opiss {
         font-size: 12px !important;
     }
-    
+
     .count-tick-btn {
         width: 24px !important;
         height: 24px !important;
         font-size: 16px !important;
         border-radius: 6px !important;
     }
-    
+
     .cart-total-inner {
         padding: 6px 10px !important;
         border-radius: 10px;
     }
-    
+
     .cart-total-label {
         font-size: 13px !important;
     }
-    
+
     .cart-total-price {
         font-size: 16px !important;
     }
-    
+
     .event-select {
         padding: 8px !important;
         font-size: 12px !important;
     }
-    
+
     .add-event-btn {
         padding: 8px !important;
         font-size: 13px !important;
         border-radius: 10px;
     }
-    
+
     .checkout-btn {
         padding: 8px !important;
         font-size: 14px !important;
     }
-    
+
     .empty-cart {
         height: 100px !important;
     }
-    
+
     .empty-cart p {
         font-size: 14px !important;
     }
@@ -6685,11 +6749,11 @@ main {
     .b-t-block .meropr-card {
         display: none !important;
     }
-    
+
     .b-t-block {
         flex-direction: column !important;
     }
-    
+
     .b-t-r {
         width: 100% !important;
     }
@@ -6700,7 +6764,7 @@ main {
     .b-t-block .meropr-card {
         display: none;
     }
-    
+
     .b-t-block {
         background: white;
         margin: 8px 12px;
@@ -6709,51 +6773,51 @@ main {
         width: auto !important;
         flex-direction: column;
     }
-    
+
     .b-t-event-name {
         font-size: 16px;
     }
-    
+
     .b-t-event-razd {
         font-size: 12px;
     }
-    
+
     .mvm-r-t-b-dr {
         gap: 10px;
         margin: 8px 0;
     }
-    
+
     .mvm-r-t-t-opis {
         font-size: 12px;
     }
-    
+
     .count-tick-btn {
         width: 28px;
         height: 28px;
         font-size: 16px;
     }
-    
+
     .t-c-opiss {
         font-size: 15px;
     }
-    
+
     .cart-actions {
         flex-direction: column;
         padding: 12px;
         gap: 40px;
         align-items: center;
     }
-    
+
     .add-event-wrapper {
         flex-direction: row;
         align-items: center;
     }
-    
-    .event-select{
+
+    .event-select {
         width: 100%;
     }
 
-    .add-event-btn{
+    .add-event-btn {
         width: 50%;
     }
 
@@ -6762,13 +6826,13 @@ main {
         height: 40px;
         border-radius: 13px;
     }
-    
+
     .cart-total {
         width: 100%;
         padding: 12px;
         justify-content: flex-end;
     }
-    
+
     .b-t-zag {
         font-size: 22px;
         text-align: center;
@@ -6780,7 +6844,7 @@ main {
     .nav {
         box-shadow: none !important;
     }
-    
+
     .nav.active {
         box-shadow: 5px 0 20px rgba(0, 0, 0, 0.1) !important;
     }
@@ -6808,7 +6872,7 @@ main {
         position: relative;
         display: inline-block;
     }
-    
+
     .nav a.active p::before {
         content: '';
         position: absolute;
@@ -6825,10 +6889,11 @@ main {
 
 @media (max-width: 425px) {
     .auth-reg {
-        background-position: 30% center !important; /* двигаем вправо, видно левую часть */
+        background-position: 30% center !important;
+        /* двигаем вправо, видно левую часть */
     }
 
-    .auth-inputs{
+    .auth-inputs {
         gap: 10px;
     }
 }
@@ -6838,7 +6903,7 @@ main {
     .auth-reg {
         position: relative;
     }
-    
+
     .auth-reg::before {
         content: '';
         position: absolute;
@@ -6846,13 +6911,13 @@ main {
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: rgba(0, 0, 0, 0.05); /* меняй 0.4 на нужное значение */
+        background-color: rgba(0, 0, 0, 0.05);
+        /* меняй 0.4 на нужное значение */
         pointer-events: none;
     }
-    
-    .auth-reg > * {
+
+    .auth-reg>* {
         position: relative;
         z-index: 1;
     }
 }
-
