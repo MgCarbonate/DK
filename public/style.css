@@ -5764,19 +5764,31 @@ main {
         height: 51px;
     }
 
-    .spaces-modal-inner {
-        height: 1327px;
-    }
-
     .modal.show {
         height: 100% !important;
         justify-content: center;
-        align-items: start;
     }
 
     .spaces-modal-zag p {
         font-size: 22px;
         margin-top: 10px;
+    }
+
+    .spaces-modal-inner {
+        height: 1327px;
+    }
+
+    .spaces-modal-zag hr{
+        display: none;
+    }
+
+    .prostran{
+        height: 100% !important;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        margin-bottom: 30px !important;
     }
 
     .profile-modal {

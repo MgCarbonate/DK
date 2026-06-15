@@ -68,10 +68,12 @@
                         <div class="sotrud-form-blocks">
                             <input type="text" name="event_type" placeholder="Вид мероприятия" class="sotrud-form-one">
                             <input type="text" name="duration" placeholder="Длительность" class="sotrud-form-three">
-                            <input type="text" name="ticket_price" id="ticketPrice" placeholder="Стоимость билета*" class="sotrud-form-four" inputmode="numeric" pattern="\d*">
+                            <input type="text" name="ticket_price" id="ticketPrice" placeholder="Стоимость билета*"
+                                class="sotrud-form-four" inputmode="numeric" pattern="\d*">
                         </div>
                         <div class="sotrud-form-area">
-                            <textarea name="description" class="sotrud-form-five" placeholder="Описание и дополнительная информация"></textarea>
+                            <textarea name="description" class="sotrud-form-five"
+                                placeholder="Описание и дополнительная информация"></textarea>
                             <p class="ps">*Может быть скорректирована при согласовании</p>
                         </div>
                         <div class="sotrud-form-btn">
@@ -100,18 +102,20 @@
 
             <!-- Модальное окно с пространствами -->
             <div id="spacesModal" class="modal">
-                <div class="modal-content spaces-modal-content">
-                    <span class="close" onclick="closeSpacesModal()">&times;</span>
-                    <div class="spaces-modal-inner">
-                        <div class="spaces-modal-zag">
-                            <hr>
-                            <p>Пространства для брони</p>
-                            <hr>
-                        </div>
-                        <div class="spaces-modal-images">
-                            <img src="/img/space-1.png" alt="">
-                            <img src="/img/space-2.png" alt="">
-                            <img src="/img/space-3.png" alt="">
+                <div class="prostran">
+                    <div class="modal-content spaces-modal-content">
+                        <span class="close" onclick="closeSpacesModal()">&times;</span>
+                        <div class="spaces-modal-inner">
+                            <div class="spaces-modal-zag">
+                                <hr>
+                                <p>Пространства для брони</p>
+                                <hr>
+                            </div>
+                            <div class="spaces-modal-images">
+                                <img src="/img/space-1.png" alt="">
+                                <img src="/img/space-2.png" alt="">
+                                <img src="/img/space-3.png" alt="">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -121,7 +125,7 @@
                 // ==================== МОДАЛЬНОЕ ОКНО ПРОСТРАНСТВ ====================
                 const spacesModal = document.getElementById('spacesModal');
                 let scrollbarWidth = 0;
-                
+
                 function getScrollbarWidth() {
                     const div = document.createElement('div');
                     div.style.overflow = 'scroll';
@@ -132,38 +136,38 @@
                     document.body.removeChild(div);
                     return width;
                 }
-                
+
                 function openSpacesModal() {
                     scrollbarWidth = getScrollbarWidth();
                     document.body.style.paddingRight = scrollbarWidth + 'px';
                     document.body.classList.add('modal-open-spaces');
                     spacesModal.classList.add('show');
                 }
-                
+
                 function closeSpacesModal() {
                     spacesModal.classList.remove('show');
                     document.body.style.paddingRight = '';
                     document.body.classList.remove('modal-open-spaces');
                 }
-                
+
                 document.querySelector('.sotrud-top-right button')?.addEventListener('click', (e) => {
                     e.preventDefault();
                     openSpacesModal();
                 });
-                
+
                 spacesModal?.addEventListener('click', (e) => {
                     if (e.target === spacesModal) {
                         closeSpacesModal();
                     }
                 });
-                
+
                 document.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape' && spacesModal?.classList.contains('show')) {
                         closeSpacesModal();
                     }
                 });
 
-                
+
 
                 function showToastRight(message, type) {
                     const existingToast = document.querySelector('.toast-notification');
@@ -184,22 +188,22 @@
                 let allEvents = [];
 
                 async function loadEvents() {
-    try {
-        const res = await fetch('/api/events/all');
-        const data = await res.json();
-        if (data.success) {
-            allEvents = data.events;
-            renderEvents(allEvents.slice(0, 6));
-        } else {
-            const meroprButton = document.querySelector('.meropr-button');
-            if (meroprButton) meroprButton.style.display = 'none';
-        }
-    } catch (error) {
-        console.error('Ошибка загрузки:', error);
-        const meroprButton = document.querySelector('.meropr-button');
-        if (meroprButton) meroprButton.style.display = 'none';
-    }
-}
+                    try {
+                        const res = await fetch('/api/events/all');
+                        const data = await res.json();
+                        if (data.success) {
+                            allEvents = data.events;
+                            renderEvents(allEvents.slice(0, 6));
+                        } else {
+                            const meroprButton = document.querySelector('.meropr-button');
+                            if (meroprButton) meroprButton.style.display = 'none';
+                        }
+                    } catch (error) {
+                        console.error('Ошибка загрузки:', error);
+                        const meroprButton = document.querySelector('.meropr-button');
+                        if (meroprButton) meroprButton.style.display = 'none';
+                    }
+                }
 
                 function formatDateShort(dateStr) {
                     const date = new Date(dateStr);
@@ -212,22 +216,22 @@
                 }
 
                 function renderEvents(events) {
-    const container = document.getElementById('eventsContainer');
-    const meroprButton = document.querySelector('.meropr-button');
-    
-    if (!container) return;
-    
-    if (!events || events.length === 0) {
-        container.innerHTML = `<p style="text-align: center; width: 100%; font-size: 24px; color: #80191B; padding: 60px 0;">Мероприятий пока нет</p>`;
-        // Скрываем кнопку "Показать еще"
-        if (meroprButton) meroprButton.style.display = 'none';
-        return;
-    }
-    
-    // Показываем кнопку, если есть мероприятия
-    if (meroprButton) meroprButton.style.display = 'flex';
-    
-    container.innerHTML = events.map(event => `
+                    const container = document.getElementById('eventsContainer');
+                    const meroprButton = document.querySelector('.meropr-button');
+
+                    if (!container) return;
+
+                    if (!events || events.length === 0) {
+                        container.innerHTML = `<p style="text-align: center; width: 100%; font-size: 24px; color: #80191B; padding: 60px 0;">Мероприятий пока нет</p>`;
+                        // Скрываем кнопку "Показать еще"
+                        if (meroprButton) meroprButton.style.display = 'none';
+                        return;
+                    }
+
+                    // Показываем кнопку, если есть мероприятия
+                    if (meroprButton) meroprButton.style.display = 'flex';
+
+                    container.innerHTML = events.map(event => `
         <div class="meropr-card" style="background-image: url('${event.image || '/img/meropr-card-img.png'}'); background-size: cover; background-position: center; cursor: pointer;" onclick="openModal(${event.event_code})">
             <div class="card-effect">
                 <div class="meropr-card-info">
@@ -242,11 +246,11 @@
             </div>
         </div>
     `).join('');
-}
+                }
 
                 function escapeHtml(str) {
                     if (!str) return '';
-                    return str.replace(/[&<>]/g, function(m) {
+                    return str.replace(/[&<>]/g, function (m) {
                         if (m === '&') return '&amp;';
                         if (m === '<') return '&lt;';
                         if (m === '>') return '&gt;';
@@ -302,7 +306,7 @@
                     modal.classList.remove('closing');
                     modal.classList.add('show');
                 }
-                
+
 
                 function closeModal() {
                     let modal = document.getElementById('modal');
@@ -318,7 +322,7 @@
                     window.location.href = `/buy-ticket?event=${currentEventCode}`;
                 }
 
-                window.onclick = function(event) {
+                window.onclick = function (event) {
                     let modal = document.getElementById('modal');
                     if (event.target == modal) {
                         closeModal();
@@ -328,7 +332,7 @@
                 loadEvents();
 
                 // ==================== СЛАЙДЕР ФОНА ====================
-                (function() {
+                (function () {
                     const backgroundImages = [
                         '/img/Group 91.png',
                         '/img/Group 92.png',
@@ -343,7 +347,7 @@
                     function changeBackground() {
                         currentIndex = (currentIndex + 1) % backgroundImages.length;
                         const img = new Image();
-                        img.onload = function() {
+                        img.onload = function () {
                             bannerElement.style.transition = 'background-image 1s ease-in-out';
                             bannerElement.style.backgroundImage = `url('${backgroundImages[currentIndex]}')`;
                         };
@@ -358,125 +362,125 @@
                         setInterval(changeBackground, 3000);
                     }
                 })();
-// ==================== ФОРМА СОТРУДНИЧЕСТВА ====================
-// Блокировка ввода букв в поле "Стоимость билета"
-const ticketPriceInput = document.getElementById('ticketPrice');
-if (ticketPriceInput) {
-    ticketPriceInput.addEventListener('input', function(e) {
-        this.value = this.value.replace(/[^\d]/g, '');
-    });
-}
+                // ==================== ФОРМА СОТРУДНИЧЕСТВА ====================
+                // Блокировка ввода букв в поле "Стоимость билета"
+                const ticketPriceInput = document.getElementById('ticketPrice');
+                if (ticketPriceInput) {
+                    ticketPriceInput.addEventListener('input', function (e) {
+                        this.value = this.value.replace(/[^\d]/g, '');
+                    });
+                }
 
 
-function validateFio(fio) {
-    const parts = fio.trim().split(/\s+/);
-    if (parts.length < 3) return false;
-    for (const part of parts) {
-        if (part.length < 2) return false;
-    }
-    return true;
-}
+                function validateFio(fio) {
+                    const parts = fio.trim().split(/\s+/);
+                    if (parts.length < 3) return false;
+                    for (const part of parts) {
+                        if (part.length < 2) return false;
+                    }
+                    return true;
+                }
 
-const sotrudForm = document.getElementById('sotrudForm');
-if (sotrudForm) {
-    async function submitForm() {
-        // Собираем данные формы
-        const formData = new FormData(sotrudForm);
-        const data = Object.fromEntries(formData.entries());
-        
-        // Проверка на незаполненные обязательные поля (ВСЕ ПОЛЯ)
-        if (!data.fio || !data.fio.trim()) {
-            showToastRight('Заполните все поля', 'error');
-            return;
-        }
-        if (!data.email || !data.email.trim()) {
-            showToastRight('Заполните все поля', 'error');
-            return;
-        }
-        if (!data.space) {
-            showToastRight('Заполните все поля', 'error');
-            return;
-        }
-        if (!data.event_type || !data.event_type.trim()) {
-            showToastRight('Заполните все поля', 'error');
-            return;
-        }
-        if (!data.duration || !data.duration.trim()) {
-            showToastRight('Заполните все поля', 'error');
-            return;
-        }
-        if (!data.ticket_price || !data.ticket_price.trim()) {
-            showToastRight('Заполните все поля', 'error');
-            return;
-        }
-        if (!data.description || !data.description.trim()) {
-            showToastRight('Заполните все поля', 'error');
-            return;
-        }
-        
-        // Валидация ФИО
-        if (!validateFio(data.fio)) {
-            showToastRight('ФИО должно содержать минимум 3 слова, каждое не менее 2 символов', 'error');
-            return;
-        }
-        
-        // Валидация email
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
-            showToastRight('Введите корректный email', 'error');
-            return;
-        }
-        
-        // Валидация стоимости (только цифры)
-        if (!/^\d+$/.test(data.ticket_price)) {
-            showToastRight('Стоимость должна содержать только цифры', 'error');
-            return;
-        }
-        
-        const submitBtn = sotrudForm.querySelector('button[type="submit"]');
-        const originalText = submitBtn.textContent;
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Отправка...';
-        
-        try {
-            const res = await fetch('/api/sotrud/submit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            const result = await res.json();
-            
-            if (result.success) {
-                showToastRight(result.message, 'success');
-                sotrudForm.reset();
-            } else {
-                showToastRight(result.message || 'Ошибка отправки', 'error');
-            }
-        } catch (error) {
-            console.error('Ошибка:', error);
-            showToastRight('Произошла ошибка. Попробуйте позже.', 'error');
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
-        }
-    }
-    
-    // Отправка по клику на кнопку
-    sotrudForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        submitForm();
-    });
-    
-    // Отправка по Enter
-    const formInputs = sotrudForm.querySelectorAll('input, select, textarea');
-    formInputs.forEach(input => {
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                submitForm();
-            }
-        });
-    });
-}
+                const sotrudForm = document.getElementById('sotrudForm');
+                if (sotrudForm) {
+                    async function submitForm() {
+                        // Собираем данные формы
+                        const formData = new FormData(sotrudForm);
+                        const data = Object.fromEntries(formData.entries());
+
+                        // Проверка на незаполненные обязательные поля (ВСЕ ПОЛЯ)
+                        if (!data.fio || !data.fio.trim()) {
+                            showToastRight('Заполните все поля', 'error');
+                            return;
+                        }
+                        if (!data.email || !data.email.trim()) {
+                            showToastRight('Заполните все поля', 'error');
+                            return;
+                        }
+                        if (!data.space) {
+                            showToastRight('Заполните все поля', 'error');
+                            return;
+                        }
+                        if (!data.event_type || !data.event_type.trim()) {
+                            showToastRight('Заполните все поля', 'error');
+                            return;
+                        }
+                        if (!data.duration || !data.duration.trim()) {
+                            showToastRight('Заполните все поля', 'error');
+                            return;
+                        }
+                        if (!data.ticket_price || !data.ticket_price.trim()) {
+                            showToastRight('Заполните все поля', 'error');
+                            return;
+                        }
+                        if (!data.description || !data.description.trim()) {
+                            showToastRight('Заполните все поля', 'error');
+                            return;
+                        }
+
+                        // Валидация ФИО
+                        if (!validateFio(data.fio)) {
+                            showToastRight('ФИО должно содержать минимум 3 слова, каждое не менее 2 символов', 'error');
+                            return;
+                        }
+
+                        // Валидация email
+                        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+                            showToastRight('Введите корректный email', 'error');
+                            return;
+                        }
+
+                        // Валидация стоимости (только цифры)
+                        if (!/^\d+$/.test(data.ticket_price)) {
+                            showToastRight('Стоимость должна содержать только цифры', 'error');
+                            return;
+                        }
+
+                        const submitBtn = sotrudForm.querySelector('button[type="submit"]');
+                        const originalText = submitBtn.textContent;
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = 'Отправка...';
+
+                        try {
+                            const res = await fetch('/api/sotrud/submit', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(data)
+                            });
+                            const result = await res.json();
+
+                            if (result.success) {
+                                showToastRight(result.message, 'success');
+                                sotrudForm.reset();
+                            } else {
+                                showToastRight(result.message || 'Ошибка отправки', 'error');
+                            }
+                        } catch (error) {
+                            console.error('Ошибка:', error);
+                            showToastRight('Произошла ошибка. Попробуйте позже.', 'error');
+                        } finally {
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalText;
+                        }
+                    }
+
+                    // Отправка по клику на кнопку
+                    sotrudForm.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        submitForm();
+                    });
+
+                    // Отправка по Enter
+                    const formInputs = sotrudForm.querySelectorAll('input, select, textarea');
+                    formInputs.forEach(input => {
+                        input.addEventListener('keypress', (e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                submitForm();
+                            }
+                        });
+                    });
+                }
 
 
             </script>
